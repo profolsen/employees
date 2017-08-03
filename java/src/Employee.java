@@ -1,7 +1,17 @@
+/**
+ * Licensed under creative commons license 3.0.
+ * Here's a url: https://creativecommons.org/licenses/by-sa/3.0/
+ *
+ *
+ */
+
 import java.util.*;
 
+
 /**
- * Created by po917265 on 8/3/17.
+ * Created by Paul Olsen, August 3rd, 2017.
+ * Data generator for my altered version of the employee example postgres database.
+ * It creates people then simulates their lives and interactions with a fictitious corporation.
  */
 public class Employee {
     private int empNo;

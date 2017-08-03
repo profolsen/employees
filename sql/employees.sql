@@ -1,4 +1,7 @@
---  Created from MySQL Employee Sample Database (http://dev.mysql.com/doc/employee/en/index.html)
+--  Created from MySQL Employee Sample Database (http://dev.mysql.com/doc/employee/en/index.html).
+--  Created by Vraj Mohan
+
+--  I (Paul Olsen) altered this file from one I found at (https://github.com/vrajmohan/pgsql-sample-data).
 --  Licensed under creative commons license 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).
 
 -- drop the tables first.
