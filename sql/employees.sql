@@ -65,17 +65,4 @@ CREATE TABLE salaries (
     to_date     DATE            NOT NULL,
     FOREIGN KEY (emp_no) REFERENCES employees (emp_no) ON DELETE CASCADE,
     PRIMARY KEY (emp_no, from_date)
-); 
-
-\echo 'LOADING departments'
-\i load_departments.sql 
-\echo 'LOADING employees'
-\i load_employees.sql 
-\echo 'LOADING dept_emp'
-\i load_dept_emp.sql 
-\echo 'LOADING dept_manager'
-\i load_dept_manager.sql 
-\echo 'LOADING titles'
-\i load_titles.sql 
-\echo 'LOADING salaries'
-\i load_salaries.sql 
+);
