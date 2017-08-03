@@ -8,6 +8,15 @@
 --  Any similarity to existing people is purely coincidental.
 -- 
 
+-- drop the tables first.
+-- notice that the drop order is the reverse of the creation order.
+DROP TABLE IF EXISTS salaries;
+DROP TABLE IF EXISTS titles;
+DROP TABLE IF EXISTS works_in;
+DROP TABLE IF EXISTS dept_manager;
+DROP TABLE IF EXISTS departments;
+DROP TABLE IF EXISTS employees;
+
 CREATE TABLE employees (
     emp_no      INT             NOT NULL,
     birth_date  DATE            NOT NULL,
@@ -34,9 +43,7 @@ CREATE TABLE dept_manager (
    PRIMARY KEY (emp_no,dept_no)
 ); 
 
-CREATE INDEX dept_manager_dept_no_idx ON dept_manager(dept_no);
-
-CREATE TABLE dept_emp (
+CREATE TABLE works_in (
     emp_no      INT             NOT NULL,
     dept_no     CHAR(4)         NOT NULL,
     from_date   DATE            NOT NULL,
@@ -45,8 +52,6 @@ CREATE TABLE dept_emp (
     FOREIGN KEY (dept_no) REFERENCES departments (dept_no) ON DELETE CASCADE,
     PRIMARY KEY (emp_no,dept_no)
 );
-
-CREATE INDEX dept_emp_dept_no_idx ON dept_emp(dept_no);
 
 CREATE TABLE titles (
     emp_no      INT             NOT NULL,
