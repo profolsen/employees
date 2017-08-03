@@ -109,7 +109,7 @@ INSERT INTO lastnames VALUES
 
 INSERT INTO employees
     SELECT generate_series as emp_no,
-           ((1980 + generate_series % 37) || '-' || ((generate_series % 12) + 1) || '-' || ((generate_series % 29) + 1))::TIMESTAMP - ((generate_series % 50) || 'years')::INTERVAL as birthdate,
+           ((1980 + generate_series % 37) || '-' || ((generate_series % 12) + 1) || '-' || ((generate_series % 29) + 1))::TIMESTAMP - ('23 years')::INTERVAL as birthdate,
            (SELECT firstname from firstnames WHERE id = generate_series % (SELECT MAX(id) + 1 FROM firstnames)) as firstname,
            (SELECT lastname from lastnames WHERE id = generate_series % (SELECT MAX(id) + 1 FROM lastnames)) as lastname,
            ((1980 + generate_series % 37) || '-' || ((generate_series % 12) + 1) || '-' || ((generate_series % 29) + 1))::TIMESTAMP as hire_date
@@ -172,3 +172,22 @@ INSERT INTO dept_manager(dept_no, emp_no, from_date, to_date) VALUES
 
 INSERT INTO dept_manager(dept_no, emp_no, from_date, to_date) VALUES
     ('0004', 19, '2003-2-28', '2015-12-31');
+
+INSERT INTO works_in
+    SELECT
+        emp_no,
+        '000' || (emp_no % 6) + 1,
+        hire_date,
+        CASE WHEN (hire_date < (now() - '7 years'::INTERVAL)) THEN
+            hire_date + '7 years'::interval ELSE
+            NULL END
+    FROM (SELECT * FROM employees) as emps;
+
+INSERT INTO works_in
+    SELECT
+        emp_no,
+        '000' || ((emp_no + 1) % 6) + 1,
+        hire_date + '7 years'::INTERVAL,
+        null
+    FROM (SELECT * FROM employees WHERE emp_no NOT IN (SELECT emp_no FROM works_in WHERE to_date IS NULL)) as anothertable;
+
