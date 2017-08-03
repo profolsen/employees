@@ -1,12 +1,5 @@
---  Sample employee database for PostgreSQL
---  See changelog table for details
 --  Created from MySQL Employee Sample Database (http://dev.mysql.com/doc/employee/en/index.html)
---  Created by Vraj Mohan
---  DISCLAIMER
---  To the best of our knowledge, this data is fabricated, and
---  it does not correspond to real people. 
---  Any similarity to existing people is purely coincidental.
--- 
+--  Licensed under creative commons license 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).
 
 -- drop the tables first.
 -- notice that the drop order is the reverse of the creation order.
@@ -40,7 +33,7 @@ CREATE TABLE dept_manager (
    to_date      TIMESTAMP       ,
    FOREIGN KEY (emp_no)  REFERENCES employees (emp_no)    ON DELETE CASCADE,
    FOREIGN KEY (dept_no) REFERENCES departments (dept_no) ON DELETE CASCADE,
-   PRIMARY KEY (emp_no,from_date)
+   PRIMARY KEY (emp_no,from_date)  -- see note in works in about primary key.
 ); 
 
 CREATE TABLE works_in (
@@ -50,7 +43,9 @@ CREATE TABLE works_in (
     to_date TIMESTAMP,
     FOREIGN KEY (emp_no)  REFERENCES employees   (emp_no)  ON DELETE CASCADE,
     FOREIGN KEY (dept_no) REFERENCES departments (dept_no) ON DELETE CASCADE,
-    PRIMARY KEY (emp_no,from_date)
+    PRIMARY KEY (emp_no,from_date)  -- it may make more sense from some perspective to have (emp_no, dept_no) be
+                                    -- the primary key here, but that precludes some pretty sensible occurrences.
+                                    -- for instance, an employee going from dept a to dept b back to dept a.
 );
 
 CREATE TABLE titles (
