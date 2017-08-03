@@ -214,7 +214,8 @@ public class Employee {
         System.out.println("INSERT INTO works_in VALUES (" +
                 empNo + ", '" +
                 departmentIDs[departmentid] + "', " +
-                string(gc) + ");"
+                string(gc) + ", " +
+                "null);"
         );
     }
 
@@ -225,6 +226,9 @@ public class Employee {
             );
             departmentHeads[departmentid] = null;
         }
+        System.out.println("UPDATE works_in SET to_date = " + string(new GregorianCalendar(year, month, day)) +
+                " WHERE emp_no = " + empNo + " AND from_date = " + string(lastMoveDate) + ";"
+        );
     }
 
     private void moveIn(int year, int month, int day) {
