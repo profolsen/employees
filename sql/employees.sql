@@ -40,24 +40,22 @@ CREATE TABLE dept_manager (
    to_date      TIMESTAMP       ,
    FOREIGN KEY (emp_no)  REFERENCES employees (emp_no)    ON DELETE CASCADE,
    FOREIGN KEY (dept_no) REFERENCES departments (dept_no) ON DELETE CASCADE,
-   PRIMARY KEY (emp_no,dept_no)
+   PRIMARY KEY (emp_no,from_date)
 ); 
 
 CREATE TABLE works_in (
     emp_no      INT             NOT NULL,
     dept_no     CHAR(4)         NOT NULL,
     from_date   TIMESTAMP       NOT NULL,
-    to_date     TIMESTAMP       ,
     FOREIGN KEY (emp_no)  REFERENCES employees   (emp_no)  ON DELETE CASCADE,
     FOREIGN KEY (dept_no) REFERENCES departments (dept_no) ON DELETE CASCADE,
-    PRIMARY KEY (emp_no,dept_no)
+    PRIMARY KEY (emp_no,from_date)
 );
 
 CREATE TABLE titles (
     emp_no      INT             NOT NULL,
     title       VARCHAR(50)     NOT NULL,
     from_date   TIMESTAMP       NOT NULL,
-    to_date     TIMESTAMP,
     FOREIGN KEY (emp_no) REFERENCES employees (emp_no) ON DELETE CASCADE,
     PRIMARY KEY (emp_no,title, from_date)
 ); 
@@ -67,127 +65,950 @@ CREATE TABLE salaries (
     emp_no      INT             NOT NULL,
     salary      INT             NOT NULL,
     from_date   TIMESTAMP       NOT NULL,
-    to_date     TIMESTAMP       ,
     FOREIGN KEY (emp_no) REFERENCES employees (emp_no) ON DELETE CASCADE,
     PRIMARY KEY (emp_no, from_date)
 );
 
-DROP TABLE IF EXISTS firstnames;
-CREATE TABLE firstnames (
-    firstname VARCHAR(14),
-    id INT
-);
 
-DROP TABLE IF EXISTS lastnames;
-CREATE TABLE lastnames (
-    lastname VARCHAR(16),
-    id INT
-);
-INSERT INTO firstnames VALUES
-    ('Alice', 0),
-    ('Bob', 1),
-    ('Charlotte', 3),
-    ('Dagwood', 4),
-    ('Edward', 5),
-    ('Felicity', 6),
-    ('Garry', 7),
-    ('Heather', 8),
-    ('Ivan', 9),
-    ('Jada', 10),
-    ('Paul', 2),
-    ('Quentin', 11),
-    ('Rachel', 12);
-
-INSERT INTO lastnames VALUES
-    ('Karenin', 0),
-    ('Levin', 1),
-    ('Mirsky', 2),
-    ('Karamozov', 4),
-    ('Scherbatsky', 5),
-    ('Tolstoy', 3),
-    ('DeLillo', 6);
-
-INSERT INTO employees
-    SELECT generate_series as emp_no,
-           ((1980 + generate_series % 37) || '-' || ((generate_series % 12) + 1) || '-' || ((generate_series % 29) + 1))::TIMESTAMP - ('23 years')::INTERVAL as birthdate,
-           (SELECT firstname from firstnames WHERE id = generate_series % (SELECT MAX(id) + 1 FROM firstnames)) as firstname,
-           (SELECT lastname from lastnames WHERE id = generate_series % (SELECT MAX(id) + 1 FROM lastnames)) as lastname,
-           ((1980 + generate_series % 37) || '-' || ((generate_series % 12) + 1) || '-' || ((generate_series % 29) + 1))::TIMESTAMP as hire_date
-    FROM generate_series(1, 101);
-
-DROP TABLE firstnames, lastnames;
-
-INSERT INTO departments(dept_no, dept_name) VALUES
-    ('0001', 'Marketing'),
-    ('0002', 'Sales'),
-    ('0003', 'Legal'),
-    ('0004', 'Java Development'),
-    ('0005', 'Database Administration'),
-    ('0006', 'Strategic Momentum');
-
-INSERT INTO dept_manager
-    SELECT '0001',
-        emp_no,
-        hire_date + ('3 years')::INTERVAL,
-        hire_date + (18 || ' years')::INTERVAL + ('3 years')::INTERVAL
-    FROM (SELECT * FROM employees WHERE date_part('year', hire_date) <= (SELECT MIN(date_part('year', hire_date)) FROM employees) ORDER BY emp_no LIMIT 1) AS oldest_employees;
-
-INSERT INTO dept_manager
-    SELECT '0002',
-        emp_no,
-        hire_date + ('3 years')::INTERVAL,
-        null
-    FROM (SELECT * FROM employees WHERE date_part('year', hire_date) <= (SELECT MIN(date_part('year', hire_date)) FROM employees) ORDER BY ((emp_no + 37) % 100) LIMIT 1) AS oldest_employees;
-
-INSERT INTO dept_manager
-    SELECT '0003',
-        emp_no,
-        hire_date + ('3 years')::INTERVAL,
-        hire_date + (18 || ' years')::INTERVAL + ('3 years')::INTERVAL
-    FROM (SELECT * FROM employees WHERE date_part('year', hire_date) = (SELECT MIN(date_part('year', hire_date)) + 1 FROM employees) ORDER BY ((emp_no + 73) % 100) LIMIT 1) AS oldest_employees;
-
-INSERT INTO dept_manager
-    SELECT '0004',
-        emp_no,
-        hire_date + ('3 years')::INTERVAL,
-        hire_date + (18 || ' years')::INTERVAL + ('3 years')::INTERVAL
-    FROM (SELECT * FROM employees WHERE date_part('year', hire_date) = (SELECT MIN(date_part('year', hire_date)) + 1 FROM employees) ORDER BY (emp_no) LIMIT 1) AS oldest_employees;
-
-INSERT INTO dept_manager
-    SELECT '0005',
-        emp_no,
-        hire_date + ('3 years')::INTERVAL,
-        null
-    FROM (SELECT * FROM employees WHERE date_part('year', hire_date) = (SELECT MIN(date_part('year', hire_date)) + 2 FROM employees) ORDER BY (emp_no) LIMIT 1) AS oldest_employees;
-
-INSERT INTO dept_manager
-    SELECT '0006',
-        emp_no,
-        hire_date + ('3 years')::INTERVAL,
-        hire_date + (18 || ' years')::INTERVAL + ('3 years')::INTERVAL
-    FROM (SELECT * FROM employees WHERE date_part('year', hire_date) = (SELECT MIN(date_part('year', hire_date)) + 3 FROM employees) ORDER BY (emp_no) LIMIT 1) AS oldest_employees;
-
-INSERT INTO dept_manager(dept_no, emp_no, from_date, to_date) VALUES
-    ('0001', 1, '2005-10-5', null);
-
-INSERT INTO dept_manager(dept_no, emp_no, from_date, to_date) VALUES
-    ('0004', 19, '2003-2-28', '2015-12-31');
-
-INSERT INTO works_in
-    SELECT
-        emp_no,
-        '000' || (emp_no % 6) + 1,
-        hire_date,
-        CASE WHEN (hire_date < (now() - '7 years'::INTERVAL)) THEN
-            hire_date + '7 years'::interval ELSE
-            NULL END
-    FROM (SELECT * FROM employees) as emps;
-
-INSERT INTO works_in
-    SELECT
-        emp_no,
-        '000' || ((emp_no + 1) % 6) + 1,
-        hire_date + '7 years'::INTERVAL,
-        null
-    FROM (SELECT * FROM employees WHERE emp_no NOT IN (SELECT emp_no FROM works_in WHERE to_date IS NULL)) as anothertable;
-
+INSERT INTO employees VALUES (54322, '1948-6-6', 'Anna', 'Diaz', '1968-11-12');
+INSERT INTO salaries VALUES ('54322', 36699, '1968-11-12');
+INSERT INTO titles VALUES ( '54322', 'Tech Lev 1', '1968-11-12');
+INSERT INTO departments VALUES ('0009', 'ARE');
+INSERT INTO dept_manager VALUES ('0009', 54322, '1968-11-12', null);
+INSERT INTO works_in VALUES (54322, '0009', '1968-11-12');
+INSERT INTO titles VALUES ( '54322', 'Tech Lev 2', '1968-12-23');
+INSERT INTO titles VALUES ( '54322', 'Programmer Lev 1', '1969-4-12');
+INSERT INTO titles VALUES ( '54322', 'Programmer Lev 2', '1969-6-6');
+INSERT INTO titles VALUES ( '54322', 'Junior Architecht', '1969-6-16');
+INSERT INTO employees VALUES (54323, '1949-5-10', 'Nathan', 'Yewbeam', '1969-7-21');
+INSERT INTO salaries VALUES ('54323', 56084, '1969-7-21');
+INSERT INTO titles VALUES ( '54323', 'Tech Lev 1', '1969-7-21');
+INSERT INTO departments VALUES ('0005', 'ABSTRACT');
+INSERT INTO dept_manager VALUES ('0005', 54323, '1969-7-21', null);
+INSERT INTO works_in VALUES (54323, '0005', '1969-7-21');
+INSERT INTO titles VALUES ( '54322', 'Senior Architecht', '1969-8-20');
+UPDATE dept_manager SET to_date = '1969-11-7' WHERE emp_no = 54322 AND from_date = '1968-11-12';
+INSERT INTO departments VALUES ('0008', 'WORDS');
+INSERT INTO dept_manager VALUES ('0008', 54322, '1969-11-7', null);
+INSERT INTO works_in VALUES (54322, '0008', '1969-11-7');
+UPDATE dept_manager SET to_date = '1970-3-8' WHERE emp_no = 54323 AND from_date = '1969-7-21';
+INSERT INTO departments VALUES ('0002', 'JOIST');
+INSERT INTO dept_manager VALUES ('0002', 54323, '1970-3-8', null);
+INSERT INTO works_in VALUES (54323, '0002', '1970-3-8');
+INSERT INTO employees VALUES (54324, '1950-1-24', 'Rachel', 'Gyser', '1970-3-12');
+INSERT INTO salaries VALUES ('54324', 20627, '1970-3-12');
+INSERT INTO titles VALUES ( '54324', 'Tech Lev 1', '1970-3-12');
+INSERT INTO departments VALUES ('0000', 'BOAT');
+INSERT INTO dept_manager VALUES ('0000', 54324, '1970-3-12', null);
+INSERT INTO works_in VALUES (54324, '0000', '1970-3-12');
+INSERT INTO employees VALUES (54325, '1950-1-28', 'Quentin', 'Tileman', '1970-3-28');
+INSERT INTO salaries VALUES ('54325', 44391, '1970-3-28');
+INSERT INTO titles VALUES ( '54325', 'Tech Lev 1', '1970-3-28');
+INSERT INTO departments VALUES ('0001', 'HAMMER');
+INSERT INTO dept_manager VALUES ('0001', 54325, '1970-3-28', null);
+INSERT INTO works_in VALUES (54325, '0001', '1970-3-28');
+UPDATE dept_manager SET to_date = '1970-4-18' WHERE emp_no = 54325 AND from_date = '1970-3-28';
+INSERT INTO works_in VALUES (54325, '0008', '1970-4-18');
+INSERT INTO employees VALUES (54326, '1950-2-15', 'Vanessa', 'Feynman', '1970-4-21');
+INSERT INTO salaries VALUES ('54326', 58234, '1970-4-21');
+INSERT INTO titles VALUES ( '54326', 'Tech Lev 1', '1970-4-21');
+INSERT INTO departments VALUES ('0004', 'OPERA');
+INSERT INTO dept_manager VALUES ('0004', 54326, '1970-4-21', null);
+INSERT INTO works_in VALUES (54326, '0004', '1970-4-21');
+INSERT INTO employees VALUES (54327, '1950-4-11', 'Rachel', 'Gyser', '1970-5-25');
+INSERT INTO salaries VALUES ('54327', 35355, '1970-5-25');
+INSERT INTO titles VALUES ( '54327', 'Tech Lev 1', '1970-5-25');
+INSERT INTO dept_manager VALUES ('0001', 54327, '1970-5-25', null);
+INSERT INTO works_in VALUES (54327, '0001', '1970-5-25');
+UPDATE dept_manager SET to_date = '1970-8-14' WHERE emp_no = 54327 AND from_date = '1970-5-25';
+INSERT INTO departments VALUES ('0013', 'POSTGRESQL');
+INSERT INTO dept_manager VALUES ('0013', 54327, '1970-8-14', null);
+INSERT INTO works_in VALUES (54327, '0013', '1970-8-14');
+INSERT INTO titles VALUES ( '54326', 'Tech Lev 2', '1970-8-19');
+INSERT INTO employees VALUES (54328, '1950-9-6', 'Kitty', 'Scherbatsky', '1970-9-13');
+INSERT INTO salaries VALUES ('54328', 40977, '1970-9-13');
+INSERT INTO titles VALUES ( '54328', 'Tech Lev 1', '1970-9-13');
+INSERT INTO departments VALUES ('0007', 'RANDOM');
+INSERT INTO dept_manager VALUES ('0007', 54328, '1970-9-13', null);
+INSERT INTO works_in VALUES (54328, '0007', '1970-9-13');
+INSERT INTO employees VALUES (54329, '1950-10-5', 'Anna', 'Vanderhund', '1970-12-19');
+INSERT INTO salaries VALUES ('54329', 42962, '1970-12-19');
+INSERT INTO titles VALUES ( '54329', 'Tech Lev 1', '1970-12-19');
+INSERT INTO departments VALUES ('0006', 'HELP');
+INSERT INTO dept_manager VALUES ('0006', 54329, '1970-12-19', null);
+INSERT INTO works_in VALUES (54329, '0006', '1970-12-19');
+INSERT INTO employees VALUES (54330, '1950-10-15', 'Heather', 'Scherbatsky', '1970-12-28');
+INSERT INTO salaries VALUES ('54330', 33530, '1970-12-28');
+INSERT INTO titles VALUES ( '54330', 'Tech Lev 1', '1970-12-28');
+INSERT INTO works_in VALUES (54330, '0006', '1970-12-28');
+UPDATE dept_manager SET to_date = '1971-1-26' WHERE emp_no = 54323 AND from_date = '1970-3-8';
+INSERT INTO departments VALUES ('0011', 'DELETE');
+INSERT INTO dept_manager VALUES ('0011', 54323, '1971-1-26', null);
+INSERT INTO works_in VALUES (54323, '0011', '1971-1-26');
+INSERT INTO titles VALUES ( '54327', 'Tech Lev 2', '1971-2-14');
+INSERT INTO titles VALUES ( '54325', 'Tech Lev 2', '1971-2-27');
+UPDATE dept_manager SET to_date = '1971-2-28' WHERE emp_no = 54328 AND from_date = '1970-9-13';
+INSERT INTO works_in VALUES (54328, '0008', '1971-2-28');
+INSERT INTO titles VALUES ( '54326', 'Programmer Lev 1', '1971-3-25');
+UPDATE dept_manager SET to_date = '1971-5-26' WHERE emp_no = 54323 AND from_date = '1971-1-26';
+INSERT INTO works_in VALUES (54323, '0004', '1971-5-26');
+UPDATE dept_manager SET to_date = '1971-6-4' WHERE emp_no = 54322 AND from_date = '1969-11-7';
+INSERT INTO departments VALUES ('0012', 'TABLE');
+INSERT INTO dept_manager VALUES ('0012', 54322, '1971-6-4', null);
+INSERT INTO works_in VALUES (54322, '0012', '1971-6-4');
+INSERT INTO titles VALUES ( '54330', 'Tech Lev 2', '1971-7-3');
+INSERT INTO employees VALUES (54331, '1951-9-3', 'William', 'Urx', '1971-10-12');
+INSERT INTO salaries VALUES ('54331', 30618, '1971-10-12');
+INSERT INTO titles VALUES ( '54331', 'Tech Lev 1', '1971-10-12');
+INSERT INTO works_in VALUES (54331, '0000', '1971-10-12');
+INSERT INTO employees VALUES (54332, '1951-12-23', 'Yvonne', 'Gyser', '1972-1-13');
+INSERT INTO salaries VALUES ('54332', 16569, '1972-1-13');
+INSERT INTO titles VALUES ( '54332', 'Tech Lev 1', '1972-1-13');
+INSERT INTO dept_manager VALUES ('0008', 54332, '1972-1-13', null);
+INSERT INTO works_in VALUES (54332, '0008', '1972-1-13');
+INSERT INTO employees VALUES (54333, '1952-2-13', 'Lindsay', 'Anderson', '1972-2-16');
+INSERT INTO salaries VALUES ('54333', 28268, '1972-2-16');
+INSERT INTO titles VALUES ( '54333', 'Tech Lev 1', '1972-2-16');
+INSERT INTO works_in VALUES (54333, '0013', '1972-2-16');
+INSERT INTO titles VALUES ( '54327', 'Tech Lev 1', '1972-8-2');
+INSERT INTO titles VALUES ( '54326', 'Programmer Lev 2', '1972-8-22');
+UPDATE dept_manager SET to_date = '1972-9-2' WHERE emp_no = 54322 AND from_date = '1971-6-4';
+INSERT INTO works_in VALUES (54322, '0000', '1972-9-2');
+INSERT INTO titles VALUES ( '54329', 'Tech Lev 2', '1972-9-15');
+INSERT INTO employees VALUES (54334, '1952-7-16', 'Dagwood', 'Vanderhund', '1972-10-14');
+INSERT INTO salaries VALUES ('54334', 44192, '1972-10-14');
+INSERT INTO titles VALUES ( '54334', 'Tech Lev 1', '1972-10-14');
+INSERT INTO dept_manager VALUES ('0005', 54334, '1972-10-14', null);
+INSERT INTO works_in VALUES (54334, '0005', '1972-10-14');
+INSERT INTO employees VALUES (54335, '1952-8-9', 'Vanessa', 'Linderman', '1972-12-8');
+INSERT INTO salaries VALUES ('54335', 49895, '1972-12-8');
+INSERT INTO titles VALUES ( '54335', 'Tech Lev 1', '1972-12-8');
+INSERT INTO dept_manager VALUES ('0009', 54335, '1972-12-8', null);
+INSERT INTO works_in VALUES (54335, '0009', '1972-12-8');
+UPDATE dept_manager SET to_date = '1973-1-19' WHERE emp_no = 54326 AND from_date = '1970-4-21';
+INSERT INTO works_in VALUES (54326, '0013', '1973-1-19');
+INSERT INTO dept_manager VALUES ('0001', 54325, '1973-2-27', null);
+INSERT INTO works_in VALUES (54325, '0001', '1973-2-27');
+INSERT INTO employees VALUES (54336, '1952-10-25', 'Bob', 'Tileman', '1973-5-21');
+INSERT INTO salaries VALUES ('54336', 39128, '1973-5-21');
+INSERT INTO titles VALUES ( '54336', 'Tech Lev 1', '1973-5-21');
+INSERT INTO dept_manager VALUES ('0012', 54336, '1973-5-21', null);
+INSERT INTO works_in VALUES (54336, '0012', '1973-5-21');
+INSERT INTO titles VALUES ( '54336', 'Tech Lev 2', '1973-6-6');
+INSERT INTO titles VALUES ( '54334', 'Tech Lev 2', '1973-7-18');
+INSERT INTO employees VALUES (54337, '1952-12-22', 'Kitty', 'Vanderhund', '1973-9-10');
+INSERT INTO salaries VALUES ('54337', 32857, '1973-9-10');
+INSERT INTO titles VALUES ( '54337', 'Tech Lev 1', '1973-9-10');
+INSERT INTO works_in VALUES (54337, '0005', '1973-9-10');
+UPDATE dept_manager SET to_date = '1973-9-24' WHERE emp_no = 54327 AND from_date = '1970-8-14';
+INSERT INTO departments VALUES ('0010', 'FUN');
+INSERT INTO dept_manager VALUES ('0010', 54327, '1973-9-24', null);
+INSERT INTO works_in VALUES (54327, '0010', '1973-9-24');
+INSERT INTO works_in VALUES (54326, '0010', '1973-11-12');
+INSERT INTO titles VALUES ( '54331', 'Tech Lev 2', '1973-11-20');
+INSERT INTO titles VALUES ( '54330', 'Tech Lev 1', '1973-12-27');
+INSERT INTO titles VALUES ( '54323', 'Tech Lev 2', '1974-1-27');
+INSERT INTO titles VALUES ( '54336', 'Programmer Lev 1', '1974-2-12');
+UPDATE dept_manager SET to_date = '1974-2-17' WHERE emp_no = 54332 AND from_date = '1972-1-13';
+INSERT INTO works_in VALUES (54332, '0001', '1974-2-17');
+INSERT INTO employees VALUES (54338, '1953-11-3', 'Garry', 'Hyte', '1974-2-23');
+INSERT INTO salaries VALUES ('54338', 38003, '1974-2-23');
+INSERT INTO titles VALUES ( '54338', 'Tech Lev 1', '1974-2-23');
+INSERT INTO works_in VALUES (54338, '0006', '1974-2-23');
+UPDATE dept_manager SET to_date = '1974-3-7' WHERE emp_no = 54336 AND from_date = '1973-5-21';
+INSERT INTO dept_manager VALUES ('0002', 54336, '1974-3-7', null);
+INSERT INTO works_in VALUES (54336, '0002', '1974-3-7');
+INSERT INTO dept_manager VALUES ('0007', 54330, '1974-3-14', null);
+INSERT INTO works_in VALUES (54330, '0007', '1974-3-14');
+INSERT INTO titles VALUES ( '54331', 'Programmer Lev 1', '1974-5-5');
+INSERT INTO works_in VALUES (54332, '0010', '1974-5-9');
+INSERT INTO employees VALUES (54339, '1954-3-20', 'Lindsay', 'Linderman', '1974-6-2');
+INSERT INTO salaries VALUES ('54339', 40929, '1974-6-2');
+INSERT INTO titles VALUES ( '54339', 'Tech Lev 1', '1974-6-2');
+INSERT INTO works_in VALUES (54339, '0006', '1974-6-2');
+INSERT INTO works_in VALUES (54337, '0010', '1974-6-5');
+INSERT INTO works_in VALUES (54326, '0006', '1974-6-8');
+INSERT INTO titles VALUES ( '54327', 'Tech Lev 2', '1974-6-24');
+INSERT INTO titles VALUES ( '54330', 'Tech Lev 2', '1974-7-13');
+INSERT INTO titles VALUES ( '54337', 'Tech Lev 2', '1974-9-25');
+INSERT INTO titles VALUES ( '54329', 'Programmer Lev 1', '1974-11-6');
+INSERT INTO employees VALUES (54340, '1954-7-19', 'Ursula', 'Scherbatsky', '1974-11-9');
+INSERT INTO salaries VALUES ('54340', 11011, '1974-11-9');
+INSERT INTO titles VALUES ( '54340', 'Tech Lev 1', '1974-11-9');
+INSERT INTO dept_manager VALUES ('0004', 54340, '1974-11-9', null);
+INSERT INTO works_in VALUES (54340, '0004', '1974-11-9');
+INSERT INTO employees VALUES (54341, '1954-7-23', 'Jada', 'Urx', '1974-11-11');
+INSERT INTO salaries VALUES ('54341', 12279, '1974-11-11');
+INSERT INTO titles VALUES ( '54341', 'Tech Lev 1', '1974-11-11');
+INSERT INTO dept_manager VALUES ('0008', 54341, '1974-11-11', null);
+INSERT INTO works_in VALUES (54341, '0008', '1974-11-11');
+INSERT INTO works_in VALUES (54323, '0005', '1975-1-5');
+INSERT INTO employees VALUES (54342, '1954-11-2', 'Konstantin', 'Scherbatsky', '1975-1-27');
+INSERT INTO salaries VALUES ('54342', 38627, '1975-1-27');
+INSERT INTO titles VALUES ( '54342', 'Tech Lev 1', '1975-1-27');
+INSERT INTO works_in VALUES (54342, '0004', '1975-1-27');
+INSERT INTO dept_manager VALUES ('0012', 54339, '1975-2-22', null);
+INSERT INTO works_in VALUES (54339, '0012', '1975-2-22');
+UPDATE dept_manager SET to_date = '1975-3-10' WHERE emp_no = 54335 AND from_date = '1972-12-8';
+INSERT INTO departments VALUES ('0003', 'FROG');
+INSERT INTO dept_manager VALUES ('0003', 54335, '1975-3-10', null);
+INSERT INTO works_in VALUES (54335, '0003', '1975-3-10');
+INSERT INTO employees VALUES (54343, '1954-11-5', 'Kyle', 'Anderson', '1975-4-6');
+INSERT INTO salaries VALUES ('54343', 26130, '1975-4-6');
+INSERT INTO titles VALUES ( '54343', 'Tech Lev 1', '1975-4-6');
+INSERT INTO works_in VALUES (54343, '0000', '1975-4-6');
+INSERT INTO dept_manager VALUES ('0013', 54337, '1975-4-21', null);
+INSERT INTO works_in VALUES (54337, '0013', '1975-4-21');
+INSERT INTO titles VALUES ( '54332', 'Tech Lev 2', '1975-6-4');
+INSERT INTO titles VALUES ( '54339', 'Tech Lev 2', '1975-6-5');
+INSERT INTO works_in VALUES (54333, '0005', '1975-6-7');
+INSERT INTO titles VALUES ( '54322', 'Strategist', '1975-6-16');
+INSERT INTO titles VALUES ( '54339', 'Programmer Lev 1', '1975-7-27');
+INSERT INTO titles VALUES ( '54341', 'Tech Lev 2', '1975-8-16');
+INSERT INTO employees VALUES (54344, '1955-7-16', 'Mary', 'Pierce', '1975-9-17');
+INSERT INTO salaries VALUES ('54344', 29697, '1975-9-17');
+INSERT INTO titles VALUES ( '54344', 'Tech Lev 1', '1975-9-17');
+INSERT INTO works_in VALUES (54344, '0001', '1975-9-17');
+INSERT INTO titles VALUES ( '54338', 'Tech Lev 2', '1975-11-15');
+INSERT INTO employees VALUES (54345, '1955-10-26', 'Paul', 'Raskolnikov', '1975-11-16');
+INSERT INTO salaries VALUES ('54345', 58772, '1975-11-16');
+INSERT INTO titles VALUES ( '54345', 'Tech Lev 1', '1975-11-16');
+INSERT INTO works_in VALUES (54345, '0012', '1975-11-16');
+INSERT INTO employees VALUES (54346, '1955-12-3', 'Edward', 'Waxman', '1976-3-7');
+INSERT INTO salaries VALUES ('54346', 48357, '1976-3-7');
+INSERT INTO titles VALUES ( '54346', 'Tech Lev 1', '1976-3-7');
+INSERT INTO works_in VALUES (54346, '0005', '1976-3-7');
+INSERT INTO employees VALUES (54347, '1955-12-19', 'Samuel', 'Mason', '1976-3-27');
+INSERT INTO salaries VALUES ('54347', 43904, '1976-3-27');
+INSERT INTO titles VALUES ( '54347', 'Tech Lev 1', '1976-3-27');
+INSERT INTO works_in VALUES (54347, '0003', '1976-3-27');
+INSERT INTO titles VALUES ( '54326', 'Junior Architecht', '1976-5-8');
+INSERT INTO employees VALUES (54348, '1956-2-21', 'Bob', 'Einstein', '1976-5-14');
+INSERT INTO salaries VALUES ('54348', 41271, '1976-5-14');
+INSERT INTO titles VALUES ( '54348', 'Tech Lev 1', '1976-5-14');
+INSERT INTO dept_manager VALUES ('0011', 54348, '1976-5-14', null);
+INSERT INTO works_in VALUES (54348, '0011', '1976-5-14');
+INSERT INTO employees VALUES (54349, '1956-4-27', 'Vanessa', 'Tileman', '1976-6-8');
+INSERT INTO salaries VALUES ('54349', 34046, '1976-6-8');
+INSERT INTO titles VALUES ( '54349', 'Tech Lev 1', '1976-6-8');
+INSERT INTO works_in VALUES (54349, '0005', '1976-6-8');
+UPDATE dept_manager SET to_date = '1976-6-24' WHERE emp_no = 54335 AND from_date = '1975-3-10';
+INSERT INTO works_in VALUES (54335, '0008', '1976-6-24');
+INSERT INTO titles VALUES ( '54329', 'Programmer Lev 2', '1976-8-18');
+INSERT INTO employees VALUES (54350, '1956-7-7', 'Tanya', 'Karamazov', '1976-9-27');
+INSERT INTO salaries VALUES ('54350', 56661, '1976-9-27');
+INSERT INTO titles VALUES ( '54350', 'Tech Lev 1', '1976-9-27');
+INSERT INTO dept_manager VALUES ('0003', 54350, '1976-9-27', null);
+INSERT INTO works_in VALUES (54350, '0003', '1976-9-27');
+INSERT INTO titles VALUES ( '54326', 'Senior Architecht', '1976-12-12');
+INSERT INTO titles VALUES ( '54327', 'Programmer Lev 1', '1976-12-23');
+UPDATE dept_manager SET to_date = '1977-1-6' WHERE emp_no = 54340 AND from_date = '1974-11-9';
+INSERT INTO works_in VALUES (54340, '0008', '1977-1-6');
+INSERT INTO titles VALUES ( '54330', 'Programmer Lev 1', '1977-2-4');
+INSERT INTO titles VALUES ( '54326', 'Strategist', '1977-4-2');
+INSERT INTO employees VALUES (54351, '1957-4-9', 'Ursula', 'Karamazov', '1977-6-2');
+INSERT INTO salaries VALUES ('54351', 37098, '1977-6-2');
+INSERT INTO titles VALUES ( '54351', 'Tech Lev 1', '1977-6-2');
+INSERT INTO works_in VALUES (54351, '0008', '1977-6-2');
+INSERT INTO employees VALUES (54352, '1957-4-23', 'Bob', 'Yewbeam', '1977-8-15');
+INSERT INTO salaries VALUES ('54352', 43716, '1977-8-15');
+INSERT INTO titles VALUES ( '54352', 'Tech Lev 1', '1977-8-15');
+INSERT INTO dept_manager VALUES ('0004', 54352, '1977-8-15', null);
+INSERT INTO works_in VALUES (54352, '0004', '1977-8-15');
+UPDATE dept_manager SET to_date = '1977-9-21' WHERE emp_no = 54327 AND from_date = '1973-9-24';
+INSERT INTO works_in VALUES (54327, '0012', '1977-9-21');
+INSERT INTO dept_manager VALUES ('0010', 54328, '1977-10-23', null);
+INSERT INTO works_in VALUES (54328, '0010', '1977-10-23');
+INSERT INTO employees VALUES (54353, '1957-10-26', 'Yvonne', 'Karamazov', '1977-11-10');
+INSERT INTO salaries VALUES ('54353', 57182, '1977-11-10');
+INSERT INTO titles VALUES ( '54353', 'Tech Lev 1', '1977-11-10');
+INSERT INTO works_in VALUES (54353, '0004', '1977-11-10');
+UPDATE dept_manager SET to_date = '1977-11-28' WHERE emp_no = 54330 AND from_date = '1974-3-14';
+INSERT INTO works_in VALUES (54330, '0013', '1977-11-28');
+INSERT INTO dept_manager VALUES ('0007', 54330, '1977-12-18', null);
+INSERT INTO works_in VALUES (54330, '0007', '1977-12-18');
+INSERT INTO works_in VALUES (54344, '0003', '1978-2-8');
+INSERT INTO titles VALUES ( '54330', 'Programmer Lev 2', '1978-3-12');
+INSERT INTO works_in VALUES (54323, '0002', '1978-3-16');
+INSERT INTO employees VALUES (54354, '1958-3-11', 'Xander', 'Vanderhund', '1978-4-20');
+INSERT INTO salaries VALUES ('54354', 48815, '1978-4-20');
+INSERT INTO titles VALUES ( '54354', 'Tech Lev 1', '1978-4-20');
+INSERT INTO dept_manager VALUES ('0009', 54354, '1978-4-20', null);
+INSERT INTO works_in VALUES (54354, '0009', '1978-4-20');
+INSERT INTO employees VALUES (54355, '1958-4-14', 'Jada', 'Yewbeam', '1978-6-24');
+INSERT INTO salaries VALUES ('54355', 45605, '1978-6-24');
+INSERT INTO titles VALUES ( '54355', 'Tech Lev 1', '1978-6-24');
+INSERT INTO works_in VALUES (54355, '0004', '1978-6-24');
+INSERT INTO titles VALUES ( '54348', 'Tech Lev 2', '1978-7-17');
+INSERT INTO works_in VALUES (54332, '0011', '1978-8-6');
+INSERT INTO titles VALUES ( '54325', 'Tech Lev 1', '1978-10-2');
+INSERT INTO employees VALUES (54356, '1958-8-13', 'Yvonne', 'Belleci', '1978-12-5');
+INSERT INTO salaries VALUES ('54356', 23663, '1978-12-5');
+INSERT INTO titles VALUES ( '54356', 'Tech Lev 1', '1978-12-5');
+INSERT INTO works_in VALUES (54356, '0007', '1978-12-5');
+INSERT INTO titles VALUES ( '54345', 'Tech Lev 2', '1979-1-25');
+INSERT INTO works_in VALUES (54331, '0006', '1979-2-2');
+INSERT INTO employees VALUES (54357, '1958-9-5', 'Bob', 'Diaz', '1979-2-7');
+INSERT INTO salaries VALUES ('54357', 38092, '1979-2-7');
+INSERT INTO titles VALUES ( '54357', 'Tech Lev 1', '1979-2-7');
+INSERT INTO works_in VALUES (54357, '0007', '1979-2-7');
+INSERT INTO works_in VALUES (54322, '0004', '1979-3-16');
+INSERT INTO works_in VALUES (54340, '0012', '1979-3-18');
+INSERT INTO titles VALUES ( '54344', 'Tech Lev 2', '1979-3-21');
+UPDATE dept_manager SET to_date = '1979-4-4' WHERE emp_no = 54339 AND from_date = '1975-2-22';
+INSERT INTO works_in VALUES (54339, '0006', '1979-4-4');
+INSERT INTO employees VALUES (54358, '1958-12-15', 'Charlotte', 'Anderson', '1979-4-24');
+INSERT INTO salaries VALUES ('54358', 56670, '1979-4-24');
+INSERT INTO titles VALUES ( '54358', 'Tech Lev 1', '1979-4-24');
+INSERT INTO works_in VALUES (54358, '0001', '1979-4-24');
+INSERT INTO titles VALUES ( '54341', 'Programmer Lev 1', '1979-5-3');
+INSERT INTO titles VALUES ( '54345', 'Programmer Lev 1', '1979-6-11');
+INSERT INTO works_in VALUES (54338, '0007', '1979-6-26');
+INSERT INTO titles VALUES ( '54328', 'Tech Lev 2', '1979-7-6');
+UPDATE dept_manager SET to_date = '1979-9-9' WHERE emp_no = 54337 AND from_date = '1975-4-21';
+INSERT INTO works_in VALUES (54337, '0000', '1979-9-9');
+INSERT INTO works_in VALUES (54349, '0008', '1979-11-8');
+INSERT INTO titles VALUES ( '54346', 'Tech Lev 2', '1979-11-26');
+INSERT INTO employees VALUES (54359, '1959-8-7', 'Edward', 'Belleci', '1979-12-3');
+INSERT INTO salaries VALUES ('54359', 51583, '1979-12-3');
+INSERT INTO titles VALUES ( '54359', 'Tech Lev 1', '1979-12-3');
+INSERT INTO dept_manager VALUES ('0013', 54359, '1979-12-3', null);
+INSERT INTO works_in VALUES (54359, '0013', '1979-12-3');
+INSERT INTO titles VALUES ( '54337', 'Programmer Lev 1', '1980-1-4');
+INSERT INTO employees VALUES (54360, '1959-8-20', 'Konstantin', 'Anderson', '1980-3-5');
+INSERT INTO salaries VALUES ('54360', 19485, '1980-3-5');
+INSERT INTO titles VALUES ( '54360', 'Tech Lev 1', '1980-3-5');
+INSERT INTO works_in VALUES (54360, '0009', '1980-3-5');
+INSERT INTO titles VALUES ( '54342', 'Tech Lev 2', '1980-3-6');
+INSERT INTO employees VALUES (54361, '1959-11-18', 'Dagwood', 'Linderman', '1980-3-15');
+INSERT INTO salaries VALUES ('54361', 41814, '1980-3-15');
+INSERT INTO titles VALUES ( '54361', 'Tech Lev 1', '1980-3-15');
+INSERT INTO dept_manager VALUES ('0012', 54361, '1980-3-15', null);
+INSERT INTO works_in VALUES (54361, '0012', '1980-3-15');
+UPDATE dept_manager SET to_date = '1980-4-22' WHERE emp_no = 54359 AND from_date = '1979-12-3';
+INSERT INTO works_in VALUES (54359, '0010', '1980-4-22');
+INSERT INTO works_in VALUES (54327, '0002', '1980-4-27');
+INSERT INTO titles VALUES ( '54358', 'Tech Lev 2', '1980-5-24');
+INSERT INTO works_in VALUES (54335, '0004', '1980-6-8');
+INSERT INTO works_in VALUES (54323, '0010', '1980-6-28');
+INSERT INTO works_in VALUES (54332, '0010', '1980-7-11');
+INSERT INTO titles VALUES ( '54358', 'Programmer Lev 1', '1980-9-10');
+INSERT INTO works_in VALUES (54345, '0011', '1980-11-23');
+INSERT INTO works_in VALUES (54339, '0011', '1980-12-10');
+INSERT INTO works_in VALUES (54353, '0008', '1981-5-13');
+INSERT INTO employees VALUES (54362, '1960-11-16', 'Rachel', 'Cameron', '1981-5-17');
+INSERT INTO salaries VALUES ('54362', 56153, '1981-5-17');
+INSERT INTO titles VALUES ( '54362', 'Tech Lev 1', '1981-5-17');
+INSERT INTO works_in VALUES (54362, '0002', '1981-5-17');
+INSERT INTO works_in VALUES (54335, '0005', '1981-5-28');
+INSERT INTO titles VALUES ( '54358', 'Programmer Lev 2', '1981-6-9');
+INSERT INTO employees VALUES (54363, '1961-2-8', 'Lindsay', 'Urx', '1981-10-20');
+INSERT INTO salaries VALUES ('54363', 29492, '1981-10-20');
+INSERT INTO titles VALUES ( '54363', 'Tech Lev 1', '1981-10-20');
+INSERT INTO works_in VALUES (54363, '0004', '1981-10-20');
+INSERT INTO employees VALUES (54364, '1961-6-24', 'William', 'Pierce', '1981-11-16');
+INSERT INTO salaries VALUES ('54364', 34222, '1981-11-16');
+INSERT INTO titles VALUES ( '54364', 'Tech Lev 1', '1981-11-16');
+INSERT INTO works_in VALUES (54364, '0000', '1981-11-16');
+INSERT INTO titles VALUES ( '54361', 'Tech Lev 2', '1981-12-27');
+INSERT INTO titles VALUES ( '54331', 'Programmer Lev 2', '1982-2-3');
+INSERT INTO employees VALUES (54365, '1961-9-4', 'Ivan', 'Belleci', '1982-2-19');
+INSERT INTO salaries VALUES ('54365', 16323, '1982-2-19');
+INSERT INTO titles VALUES ( '54365', 'Tech Lev 1', '1982-2-19');
+INSERT INTO works_in VALUES (54365, '0012', '1982-2-19');
+INSERT INTO titles VALUES ( '54340', 'Tech Lev 2', '1982-2-24');
+INSERT INTO employees VALUES (54366, '1961-11-4', 'Quentin', 'Waxman', '1982-3-17');
+INSERT INTO salaries VALUES ('54366', 24988, '1982-3-17');
+INSERT INTO titles VALUES ( '54366', 'Tech Lev 1', '1982-3-17');
+INSERT INTO works_in VALUES (54366, '0005', '1982-3-17');
+INSERT INTO employees VALUES (54367, '1961-12-16', 'Heather', 'Anderson', '1982-4-16');
+INSERT INTO salaries VALUES ('54367', 27072, '1982-4-16');
+INSERT INTO titles VALUES ( '54367', 'Tech Lev 1', '1982-4-16');
+INSERT INTO works_in VALUES (54367, '0008', '1982-4-16');
+INSERT INTO employees VALUES (54368, '1962-1-22', 'Alice', 'Anderson', '1982-4-17');
+INSERT INTO salaries VALUES ('54368', 11716, '1982-4-17');
+INSERT INTO titles VALUES ( '54368', 'Tech Lev 1', '1982-4-17');
+INSERT INTO works_in VALUES (54368, '0004', '1982-4-17');
+INSERT INTO titles VALUES ( '54330', 'Junior Architecht', '1982-4-26');
+INSERT INTO works_in VALUES (54358, '0008', '1982-7-10');
+INSERT INTO dept_manager VALUES ('0013', 54365, '1982-8-3', null);
+INSERT INTO works_in VALUES (54365, '0013', '1982-8-3');
+INSERT INTO works_in VALUES (54364, '0003', '1982-8-5');
+UPDATE dept_manager SET to_date = '1982-9-28' WHERE emp_no = 54365 AND from_date = '1982-8-3';
+INSERT INTO works_in VALUES (54365, '0002', '1982-9-28');
+INSERT INTO titles VALUES ( '54361', 'Programmer Lev 1', '1982-10-2');
+INSERT INTO titles VALUES ( '54358', 'Junior Architecht', '1982-11-20');
+INSERT INTO titles VALUES ( '54323', 'Programmer Lev 1', '1982-11-23');
+INSERT INTO employees VALUES (54369, '1962-12-8', 'Xander', 'Yewbeam', '1983-1-15');
+INSERT INTO salaries VALUES ('54369', 10529, '1983-1-15');
+INSERT INTO titles VALUES ( '54369', 'Tech Lev 1', '1983-1-15');
+INSERT INTO works_in VALUES (54369, '0011', '1983-1-15');
+INSERT INTO titles VALUES ( '54368', 'Tech Lev 2', '1983-2-15');
+INSERT INTO works_in VALUES (54326, '0005', '1983-5-4');
+INSERT INTO employees VALUES (54370, '1963-4-7', 'Vanessa', 'Gyser', '1983-5-12');
+INSERT INTO salaries VALUES ('54370', 20047, '1983-5-12');
+INSERT INTO titles VALUES ( '54370', 'Tech Lev 1', '1983-5-12');
+INSERT INTO works_in VALUES (54370, '0007', '1983-5-12');
+INSERT INTO titles VALUES ( '54367', 'Tech Lev 2', '1983-5-24');
+UPDATE dept_manager SET to_date = '1983-6-26' WHERE emp_no = 54348 AND from_date = '1976-5-14';
+INSERT INTO works_in VALUES (54348, '0009', '1983-6-26');
+INSERT INTO titles VALUES ( '54353', 'Tech Lev 2', '1983-9-23');
+INSERT INTO employees VALUES (54371, '1963-10-22', 'Yvonne', 'Linderman', '1983-11-10');
+INSERT INTO salaries VALUES ('54371', 22707, '1983-11-10');
+INSERT INTO titles VALUES ( '54371', 'Tech Lev 1', '1983-11-10');
+INSERT INTO dept_manager VALUES ('0011', 54371, '1983-11-10', null);
+INSERT INTO works_in VALUES (54371, '0011', '1983-11-10');
+INSERT INTO titles VALUES ( '54348', 'Programmer Lev 1', '1983-12-8');
+INSERT INTO employees VALUES (54372, '1963-12-7', 'Nathan', 'Linderman', '1984-1-3');
+INSERT INTO salaries VALUES ('54372', 28009, '1984-1-3');
+INSERT INTO titles VALUES ( '54372', 'Tech Lev 1', '1984-1-3');
+INSERT INTO works_in VALUES (54372, '0000', '1984-1-3');
+INSERT INTO works_in VALUES (54348, '0000', '1984-2-4');
+INSERT INTO titles VALUES ( '54352', 'Tech Lev 2', '1984-3-13');
+INSERT INTO employees VALUES (54373, '1964-2-5', 'William', 'Cameron', '1984-6-26');
+INSERT INTO salaries VALUES ('54373', 20103, '1984-6-26');
+INSERT INTO titles VALUES ( '54373', 'Tech Lev 1', '1984-6-26');
+INSERT INTO works_in VALUES (54373, '0012', '1984-6-26');
+INSERT INTO titles VALUES ( '54351', 'Tech Lev 2', '1984-8-8');
+INSERT INTO employees VALUES (54374, '1964-4-9', 'Mary', 'Linderman', '1984-9-10');
+INSERT INTO salaries VALUES ('54374', 24686, '1984-9-10');
+INSERT INTO titles VALUES ( '54374', 'Tech Lev 1', '1984-9-10');
+INSERT INTO works_in VALUES (54374, '0000', '1984-9-10');
+INSERT INTO titles VALUES ( '54350', 'Tech Lev 2', '1984-9-13');
+INSERT INTO titles VALUES ( '54365', 'Tech Lev 2', '1984-9-23');
+UPDATE dept_manager SET to_date = '1984-11-8' WHERE emp_no = 54336 AND from_date = '1974-3-7';
+INSERT INTO works_in VALUES (54336, '0005', '1984-11-8');
+INSERT INTO works_in VALUES (54331, '0010', '1984-11-11');
+INSERT INTO works_in VALUES (54359, '0011', '1984-12-26');
+INSERT INTO works_in VALUES (54332, '0012', '1985-1-9');
+INSERT INTO employees VALUES (54375, '1964-4-26', 'Zelda', 'Linderman', '1985-1-17');
+INSERT INTO salaries VALUES ('54375', 12908, '1985-1-17');
+INSERT INTO titles VALUES ( '54375', 'Tech Lev 1', '1985-1-17');
+INSERT INTO works_in VALUES (54375, '0004', '1985-1-17');
+INSERT INTO titles VALUES ( '54330', 'Senior Architecht', '1985-3-28');
+INSERT INTO titles VALUES ( '54368', 'Programmer Lev 1', '1985-6-19');
+INSERT INTO employees VALUES (54376, '1964-5-20', 'Ursula', 'Feynman', '1985-7-3');
+INSERT INTO salaries VALUES ('54376', 26140, '1985-7-3');
+INSERT INTO titles VALUES ( '54376', 'Tech Lev 1', '1985-7-3');
+INSERT INTO dept_manager VALUES ('0013', 54376, '1985-7-3', null);
+INSERT INTO works_in VALUES (54376, '0013', '1985-7-3');
+INSERT INTO titles VALUES ( '54373', 'Tech Lev 2', '1985-7-27');
+INSERT INTO titles VALUES ( '54345', 'Programmer Lev 2', '1985-8-5');
+INSERT INTO titles VALUES ( '54373', 'Programmer Lev 1', '1985-10-15');
+INSERT INTO titles VALUES ( '54335', 'Tech Lev 2', '1985-12-16');
+INSERT INTO titles VALUES ( '54357', 'Tech Lev 2', '1986-1-25');
+INSERT INTO employees VALUES (54377, '1964-7-28', 'Mary', 'Hyte', '1986-2-3');
+INSERT INTO salaries VALUES ('54377', 54412, '1986-2-3');
+INSERT INTO titles VALUES ( '54377', 'Tech Lev 1', '1986-2-3');
+INSERT INTO works_in VALUES (54377, '0006', '1986-2-3');
+INSERT INTO titles VALUES ( '54369', 'Tech Lev 2', '1986-2-11');
+INSERT INTO employees VALUES (54378, '1964-12-28', 'Jada', 'Karamazov', '1986-3-22');
+INSERT INTO salaries VALUES ('54378', 34707, '1986-3-22');
+INSERT INTO titles VALUES ( '54378', 'Tech Lev 1', '1986-3-22');
+INSERT INTO works_in VALUES (54378, '0013', '1986-3-22');
+INSERT INTO works_in VALUES (54357, '0003', '1986-4-12');
+INSERT INTO titles VALUES ( '54358', 'Senior Architecht', '1986-5-11');
+INSERT INTO employees VALUES (54379, '1965-7-11', 'Paul', 'Mason', '1986-6-21');
+INSERT INTO salaries VALUES ('54379', 20694, '1986-6-21');
+INSERT INTO titles VALUES ( '54379', 'Tech Lev 1', '1986-6-21');
+INSERT INTO works_in VALUES (54379, '0012', '1986-6-21');
+INSERT INTO works_in VALUES (54362, '0001', '1986-6-22');
+INSERT INTO employees VALUES (54380, '1965-10-13', 'Konstantin', 'Feynman', '1986-7-21');
+INSERT INTO salaries VALUES ('54380', 17824, '1986-7-21');
+INSERT INTO titles VALUES ( '54380', 'Tech Lev 1', '1986-7-21');
+INSERT INTO dept_manager VALUES ('0002', 54380, '1986-7-21', null);
+INSERT INTO works_in VALUES (54380, '0002', '1986-7-21');
+INSERT INTO titles VALUES ( '54359', 'Tech Lev 2', '1986-8-23');
+INSERT INTO titles VALUES ( '54360', 'Tech Lev 2', '1986-11-13');
+INSERT INTO works_in VALUES (54331, '0012', '1987-1-6');
+INSERT INTO works_in VALUES (54331, '0009', '1987-1-25');
+INSERT INTO employees VALUES (54381, '1966-1-22', 'Nathan', 'Linderman', '1987-2-23');
+INSERT INTO salaries VALUES ('54381', 55896, '1987-2-23');
+INSERT INTO titles VALUES ( '54381', 'Tech Lev 1', '1987-2-23');
+INSERT INTO works_in VALUES (54381, '0009', '1987-2-23');
+INSERT INTO titles VALUES ( '54323', 'Programmer Lev 2', '1987-2-28');
+INSERT INTO employees VALUES (54382, '1966-8-26', 'Rachel', 'Mason', '1987-3-3');
+INSERT INTO salaries VALUES ('54382', 47842, '1987-3-3');
+INSERT INTO titles VALUES ( '54382', 'Tech Lev 1', '1987-3-3');
+INSERT INTO works_in VALUES (54382, '0002', '1987-3-3');
+INSERT INTO titles VALUES ( '54341', 'Programmer Lev 2', '1987-4-18');
+INSERT INTO works_in VALUES (54326, '0011', '1987-11-26');
+INSERT INTO titles VALUES ( '54347', 'Tech Lev 2', '1987-12-2');
+INSERT INTO titles VALUES ( '54371', 'Tech Lev 2', '1988-2-16');
+INSERT INTO employees VALUES (54383, '1967-10-8', 'Vanessa', 'Gyser', '1988-7-12');
+INSERT INTO salaries VALUES ('54383', 56131, '1988-7-12');
+INSERT INTO titles VALUES ( '54383', 'Tech Lev 1', '1988-7-12');
+INSERT INTO works_in VALUES (54383, '0009', '1988-7-12');
+INSERT INTO titles VALUES ( '54381', 'Tech Lev 2', '1988-8-3');
+INSERT INTO titles VALUES ( '54327', 'Programmer Lev 2', '1988-8-12');
+INSERT INTO titles VALUES ( '54373', 'Programmer Lev 2', '1988-10-8');
+INSERT INTO titles VALUES ( '54328', 'Programmer Lev 1', '1989-3-3');
+UPDATE dept_manager SET to_date = '1989-4-2' WHERE emp_no = 54330 AND from_date = '1977-12-18';
+INSERT INTO works_in VALUES (54330, '0009', '1989-4-2');
+INSERT INTO titles VALUES ( '54355', 'Tech Lev 2', '1989-4-11');
+INSERT INTO titles VALUES ( '54323', 'Junior Architecht', '1989-5-5');
+INSERT INTO works_in VALUES (54353, '0009', '1989-9-15');
+INSERT INTO titles VALUES ( '54328', 'Tech Lev 2', '1989-9-18');
+INSERT INTO works_in VALUES (54359, '0008', '1989-9-20');
+INSERT INTO employees VALUES (54384, '1969-8-5', 'Lindsay', 'Scherbatsky', '1989-10-12');
+INSERT INTO salaries VALUES ('54384', 29810, '1989-10-12');
+INSERT INTO titles VALUES ( '54384', 'Tech Lev 1', '1989-10-12');
+INSERT INTO works_in VALUES (54384, '0005', '1989-10-12');
+INSERT INTO titles VALUES ( '54364', 'Tech Lev 2', '1990-1-8');
+INSERT INTO titles VALUES ( '54354', 'Tech Lev 2', '1990-3-10');
+INSERT INTO titles VALUES ( '54356', 'Tech Lev 2', '1990-3-23');
+INSERT INTO works_in VALUES (54360, '0000', '1990-6-28');
+INSERT INTO employees VALUES (54385, '1970-6-10', 'Olivia', 'Anderson', '1990-8-4');
+INSERT INTO salaries VALUES ('54385', 36301, '1990-8-4');
+INSERT INTO titles VALUES ( '54385', 'Tech Lev 1', '1990-8-4');
+INSERT INTO dept_manager VALUES ('0007', 54385, '1990-8-4', null);
+INSERT INTO works_in VALUES (54385, '0007', '1990-8-4');
+INSERT INTO works_in VALUES (54344, '0009', '1990-9-3');
+INSERT INTO titles VALUES ( '54331', 'Junior Architecht', '1991-1-12');
+INSERT INTO works_in VALUES (54368, '0002', '1991-2-7');
+INSERT INTO works_in VALUES (54332, '0009', '1991-4-14');
+UPDATE dept_manager SET to_date = '1991-5-2' WHERE emp_no = 54341 AND from_date = '1974-11-11';
+INSERT INTO works_in VALUES (54341, '0005', '1991-5-2');
+INSERT INTO titles VALUES ( '54325', 'Tech Lev 2', '1991-7-3');
+INSERT INTO employees VALUES (54386, '1971-4-16', 'Bob', 'Diaz', '1991-9-4');
+INSERT INTO salaries VALUES ('54386', 34134, '1991-9-4');
+INSERT INTO titles VALUES ( '54386', 'Tech Lev 1', '1991-9-4');
+INSERT INTO works_in VALUES (54386, '0001', '1991-9-4');
+INSERT INTO works_in VALUES (54360, '0001', '1991-10-18');
+INSERT INTO employees VALUES (54387, '1971-7-21', 'Rachel', 'Urx', '1991-11-23');
+INSERT INTO salaries VALUES ('54387', 36259, '1991-11-23');
+INSERT INTO titles VALUES ( '54387', 'Tech Lev 1', '1991-11-23');
+INSERT INTO works_in VALUES (54387, '0007', '1991-11-23');
+INSERT INTO employees VALUES (54388, '1971-9-3', 'Bob', 'Pierce', '1992-1-7');
+INSERT INTO salaries VALUES ('54388', 15665, '1992-1-7');
+INSERT INTO titles VALUES ( '54388', 'Tech Lev 1', '1992-1-7');
+INSERT INTO works_in VALUES (54388, '0006', '1992-1-7');
+UPDATE dept_manager SET to_date = '1992-1-18' WHERE emp_no = 54361 AND from_date = '1980-3-15';
+INSERT INTO works_in VALUES (54361, '0004', '1992-1-18');
+INSERT INTO employees VALUES (54389, '1971-11-28', 'Tanya', 'Scherbatsky', '1992-1-24');
+INSERT INTO salaries VALUES ('54389', 29215, '1992-1-24');
+INSERT INTO titles VALUES ( '54389', 'Tech Lev 1', '1992-1-24');
+INSERT INTO works_in VALUES (54389, '0001', '1992-1-24');
+INSERT INTO titles VALUES ( '54383', 'Tech Lev 2', '1992-5-2');
+INSERT INTO works_in VALUES (54356, '0011', '1992-5-8');
+INSERT INTO works_in VALUES (54322, '0002', '1992-6-4');
+INSERT INTO titles VALUES ( '54348', 'Programmer Lev 2', '1992-6-18');
+INSERT INTO titles VALUES ( '54370', 'Tech Lev 2', '1992-7-12');
+INSERT INTO works_in VALUES (54353, '0005', '1992-8-2');
+INSERT INTO employees VALUES (54390, '1972-6-2', 'Charlotte', 'Waxman', '1992-8-6');
+INSERT INTO salaries VALUES ('54390', 49418, '1992-8-6');
+INSERT INTO titles VALUES ( '54390', 'Tech Lev 1', '1992-8-6');
+INSERT INTO works_in VALUES (54390, '0011', '1992-8-6');
+UPDATE dept_manager SET to_date = '1992-8-10' WHERE emp_no = 54385 AND from_date = '1990-8-4';
+INSERT INTO works_in VALUES (54385, '0005', '1992-8-10');
+INSERT INTO employees VALUES (54391, '1972-7-8', 'Quentin', 'Hyte', '1992-8-16');
+INSERT INTO salaries VALUES ('54391', 27073, '1992-8-16');
+INSERT INTO titles VALUES ( '54391', 'Tech Lev 1', '1992-8-16');
+INSERT INTO works_in VALUES (54391, '0005', '1992-8-16');
+INSERT INTO works_in VALUES (54327, '0005', '1992-9-18');
+INSERT INTO dept_manager VALUES ('0007', 54326, '1993-3-18', null);
+INSERT INTO works_in VALUES (54326, '0007', '1993-3-18');
+INSERT INTO titles VALUES ( '54359', 'Tech Lev 1', '1993-5-15');
+INSERT INTO titles VALUES ( '54375', 'Tech Lev 2', '1993-7-20');
+INSERT INTO works_in VALUES (54348, '0004', '1993-7-25');
+INSERT INTO dept_manager VALUES ('0008', 54323, '1993-11-2', null);
+INSERT INTO works_in VALUES (54323, '0008', '1993-11-2');
+INSERT INTO employees VALUES (54392, '1973-9-23', 'Ivan', 'Diaz', '1993-11-24');
+INSERT INTO salaries VALUES ('54392', 35166, '1993-11-24');
+INSERT INTO titles VALUES ( '54392', 'Tech Lev 1', '1993-11-24');
+INSERT INTO works_in VALUES (54392, '0004', '1993-11-24');
+INSERT INTO titles VALUES ( '54356', 'Programmer Lev 1', '1994-2-23');
+INSERT INTO dept_manager VALUES ('0012', 54333, '1994-3-4', null);
+INSERT INTO works_in VALUES (54333, '0012', '1994-3-4');
+INSERT INTO titles VALUES ( '54323', 'Senior Architecht', '1994-5-28');
+INSERT INTO works_in VALUES (54355, '0009', '1994-6-6');
+INSERT INTO employees VALUES (54393, '1974-6-4', 'Yvonne', 'Yewbeam', '1994-6-8');
+INSERT INTO salaries VALUES ('54393', 21202, '1994-6-8');
+INSERT INTO titles VALUES ( '54393', 'Tech Lev 1', '1994-6-8');
+INSERT INTO works_in VALUES (54393, '0003', '1994-6-8');
+INSERT INTO works_in VALUES (54384, '0002', '1994-7-2');
+INSERT INTO employees VALUES (54394, '1974-6-15', 'William', 'Karamazov', '1994-8-2');
+INSERT INTO salaries VALUES ('54394', 55116, '1994-8-2');
+INSERT INTO titles VALUES ( '54394', 'Tech Lev 1', '1994-8-2');
+INSERT INTO works_in VALUES (54394, '0005', '1994-8-2');
+INSERT INTO titles VALUES ( '54337', 'Programmer Lev 2', '1994-8-19');
+INSERT INTO titles VALUES ( '54345', 'Junior Architecht', '1994-9-13');
+INSERT INTO employees VALUES (54395, '1974-6-23', 'Edward', 'Yewbeam', '1994-9-27');
+INSERT INTO salaries VALUES ('54395', 17172, '1994-9-27');
+INSERT INTO titles VALUES ( '54395', 'Tech Lev 1', '1994-9-27');
+INSERT INTO works_in VALUES (54395, '0004', '1994-9-27');
+INSERT INTO titles VALUES ( '54331', 'Senior Architecht', '1994-10-3');
+INSERT INTO works_in VALUES (54389, '0006', '1994-11-28');
+INSERT INTO titles VALUES ( '54371', 'Tech Lev 1', '1995-3-4');
+INSERT INTO works_in VALUES (54353, '0001', '1995-3-19');
+INSERT INTO titles VALUES ( '54375', 'Programmer Lev 1', '1995-4-7');
+INSERT INTO titles VALUES ( '54395', 'Tech Lev 2', '1995-5-10');
+INSERT INTO works_in VALUES (54390, '0009', '1995-8-15');
+INSERT INTO titles VALUES ( '54392', 'Tech Lev 2', '1995-12-17');
+INSERT INTO titles VALUES ( '54377', 'Tech Lev 2', '1996-1-8');
+INSERT INTO employees VALUES (54396, '1975-11-21', 'William', 'Diaz', '1996-1-13');
+INSERT INTO salaries VALUES ('54396', 22146, '1996-1-13');
+INSERT INTO titles VALUES ( '54396', 'Tech Lev 1', '1996-1-13');
+INSERT INTO works_in VALUES (54396, '0008', '1996-1-13');
+INSERT INTO works_in VALUES (54336, '0013', '1996-7-15');
+INSERT INTO titles VALUES ( '54386', 'Tech Lev 2', '1996-9-8');
+INSERT INTO employees VALUES (54397, '1975-11-22', 'Felicity', 'Urx', '1996-9-11');
+INSERT INTO salaries VALUES ('54397', 52618, '1996-9-11');
+INSERT INTO titles VALUES ( '54397', 'Tech Lev 1', '1996-9-11');
+INSERT INTO works_in VALUES (54397, '0001', '1996-9-11');
+INSERT INTO titles VALUES ( '54339', 'Programmer Lev 2', '1996-9-28');
+INSERT INTO titles VALUES ( '54377', 'Tech Lev 1', '1996-10-4');
+INSERT INTO titles VALUES ( '54371', 'Tech Lev 2', '1996-11-18');
+UPDATE dept_manager SET to_date = '1997-1-27' WHERE emp_no = 54380 AND from_date = '1986-7-21';
+INSERT INTO works_in VALUES (54380, '0000', '1997-1-27');
+INSERT INTO works_in VALUES (54386, '0007', '1997-3-21');
+INSERT INTO employees VALUES (54398, '1976-10-9', 'Heather', 'Cameron', '1997-3-28');
+INSERT INTO salaries VALUES ('54398', 46684, '1997-3-28');
+INSERT INTO titles VALUES ( '54398', 'Tech Lev 1', '1997-3-28');
+INSERT INTO works_in VALUES (54398, '0013', '1997-3-28');
+INSERT INTO titles VALUES ( '54324', 'Tech Lev 2', '1997-4-8');
+INSERT INTO works_in VALUES (54381, '0008', '1997-4-28');
+INSERT INTO titles VALUES ( '54377', 'Tech Lev 2', '1997-6-3');
+INSERT INTO employees VALUES (54399, '1976-11-8', 'Olivia', 'Scherbatsky', '1997-6-24');
+INSERT INTO salaries VALUES ('54399', 30345, '1997-6-24');
+INSERT INTO titles VALUES ( '54399', 'Tech Lev 1', '1997-6-24');
+INSERT INTO works_in VALUES (54399, '0004', '1997-6-24');
+INSERT INTO titles VALUES ( '54397', 'Tech Lev 2', '1997-7-6');
+INSERT INTO works_in VALUES (54382, '0003', '1997-11-9');
+INSERT INTO employees VALUES (54400, '1976-11-23', 'Heather', 'Pierce', '1997-11-15');
+INSERT INTO salaries VALUES ('54400', 23003, '1997-11-15');
+INSERT INTO titles VALUES ( '54400', 'Tech Lev 1', '1997-11-15');
+INSERT INTO dept_manager VALUES ('0002', 54400, '1997-11-15', null);
+INSERT INTO works_in VALUES (54400, '0002', '1997-11-15');
+INSERT INTO works_in VALUES (54359, '0009', '1998-1-11');
+INSERT INTO employees VALUES (54401, '1976-11-24', 'Heather', 'Cameron', '1998-2-8');
+INSERT INTO salaries VALUES ('54401', 52728, '1998-2-8');
+INSERT INTO titles VALUES ( '54401', 'Tech Lev 1', '1998-2-8');
+INSERT INTO works_in VALUES (54401, '0010', '1998-2-8');
+INSERT INTO works_in VALUES (54342, '0007', '1998-2-10');
+INSERT INTO employees VALUES (54402, '1977-12-27', 'Edward', 'Jordan', '1998-2-22');
+INSERT INTO salaries VALUES ('54402', 53612, '1998-2-22');
+INSERT INTO titles VALUES ( '54402', 'Tech Lev 1', '1998-2-22');
+INSERT INTO works_in VALUES (54402, '0010', '1998-2-22');
+INSERT INTO works_in VALUES (54345, '0008', '1998-3-24');
+UPDATE dept_manager SET to_date = '1998-5-23' WHERE emp_no = 54334 AND from_date = '1972-10-14';
+INSERT INTO works_in VALUES (54334, '0012', '1998-5-23');
+UPDATE dept_manager SET to_date = '1998-12-12' WHERE emp_no = 54350 AND from_date = '1976-9-27';
+INSERT INTO dept_manager VALUES ('0005', 54350, '1998-12-12', null);
+INSERT INTO works_in VALUES (54350, '0005', '1998-12-12');
+INSERT INTO works_in VALUES (54374, '0012', '1998-12-27');
+INSERT INTO works_in VALUES (54348, '0000', '1999-2-20');
+INSERT INTO works_in VALUES (54345, '0012', '1999-2-26');
+INSERT INTO titles VALUES ( '54333', 'Tech Lev 2', '1999-4-2');
+INSERT INTO works_in VALUES (54330, '0012', '1999-4-28');
+INSERT INTO titles VALUES ( '54351', 'Programmer Lev 1', '1999-6-2');
+INSERT INTO titles VALUES ( '54365', 'Programmer Lev 1', '1999-6-13');
+INSERT INTO works_in VALUES (54356, '0006', '1999-6-25');
+INSERT INTO titles VALUES ( '54386', 'Programmer Lev 1', '1999-9-28');
+INSERT INTO works_in VALUES (54386, '0011', '2000-5-8');
+INSERT INTO titles VALUES ( '54394', 'Tech Lev 2', '2000-5-18');
+INSERT INTO works_in VALUES (54375, '0008', '2000-5-25');
+INSERT INTO titles VALUES ( '54399', 'Tech Lev 2', '2000-6-10');
+INSERT INTO works_in VALUES (54342, '0001', '2000-8-13');
+UPDATE dept_manager SET to_date = '2000-8-22' WHERE emp_no = 54352 AND from_date = '1977-8-15';
+INSERT INTO works_in VALUES (54352, '0002', '2000-8-22');
+INSERT INTO titles VALUES ( '54377', 'Programmer Lev 1', '2000-8-24');
+INSERT INTO works_in VALUES (54337, '0011', '2000-10-19');
+INSERT INTO titles VALUES ( '54322', 'Senior Architecht', '2000-11-5');
+INSERT INTO works_in VALUES (54390, '0005', '2000-12-25');
+INSERT INTO titles VALUES ( '54358', 'Strategist', '2001-1-26');
+INSERT INTO titles VALUES ( '54325', 'Programmer Lev 1', '2001-8-19');
+INSERT INTO titles VALUES ( '54361', 'Tech Lev 2', '2001-11-21');
+INSERT INTO works_in VALUES (54322, '0005', '2001-12-18');
+INSERT INTO employees VALUES (54403, '1980-5-11', 'Bob', 'Urx', '2002-2-23');
+INSERT INTO salaries VALUES ('54403', 50008, '2002-2-23');
+INSERT INTO titles VALUES ( '54403', 'Tech Lev 1', '2002-2-23');
+INSERT INTO dept_manager VALUES ('0003', 54403, '2002-2-23', null);
+INSERT INTO works_in VALUES (54403, '0003', '2002-2-23');
+INSERT INTO titles VALUES ( '54356', 'Programmer Lev 2', '2002-3-5');
+INSERT INTO employees VALUES (54404, '1980-7-4', 'Zelda', 'Hyte', '2002-3-9');
+INSERT INTO salaries VALUES ('54404', 20722, '2002-3-9');
+INSERT INTO titles VALUES ( '54404', 'Tech Lev 1', '2002-3-9');
+INSERT INTO works_in VALUES (54404, '0000', '2002-3-9');
+INSERT INTO works_in VALUES (54369, '0000', '2002-4-10');
+INSERT INTO titles VALUES ( '54335', 'Programmer Lev 1', '2002-6-16');
+INSERT INTO employees VALUES (54405, '1980-7-20', 'Jada', 'Belleci', '2002-6-23');
+INSERT INTO salaries VALUES ('54405', 59704, '2002-6-23');
+INSERT INTO titles VALUES ( '54405', 'Tech Lev 1', '2002-6-23');
+INSERT INTO works_in VALUES (54405, '0010', '2002-6-23');
+INSERT INTO employees VALUES (54406, '1980-11-12', 'Vanessa', 'Yewbeam', '2002-8-10');
+INSERT INTO salaries VALUES ('54406', 51479, '2002-8-10');
+INSERT INTO titles VALUES ( '54406', 'Tech Lev 1', '2002-8-10');
+INSERT INTO works_in VALUES (54406, '0005', '2002-8-10');
+INSERT INTO dept_manager VALUES ('0004', 54383, '2002-10-15', null);
+INSERT INTO works_in VALUES (54383, '0004', '2002-10-15');
+INSERT INTO works_in VALUES (54398, '0002', '2002-10-28');
+INSERT INTO employees VALUES (54407, '1982-10-10', 'Kyle', 'Vanderhund', '2002-11-24');
+INSERT INTO salaries VALUES ('54407', 51082, '2002-11-24');
+INSERT INTO titles VALUES ( '54407', 'Tech Lev 1', '2002-11-24');
+INSERT INTO works_in VALUES (54407, '0012', '2002-11-24');
+INSERT INTO employees VALUES (54408, '1982-10-24', 'Charlotte', 'Einstein', '2003-1-4');
+INSERT INTO salaries VALUES ('54408', 57160, '2003-1-4');
+INSERT INTO titles VALUES ( '54408', 'Tech Lev 1', '2003-1-4');
+INSERT INTO works_in VALUES (54408, '0005', '2003-1-4');
+INSERT INTO employees VALUES (54409, '1982-11-10', 'Nathan', 'Jordan', '2003-1-18');
+INSERT INTO salaries VALUES ('54409', 26471, '2003-1-18');
+INSERT INTO titles VALUES ( '54409', 'Tech Lev 1', '2003-1-18');
+INSERT INTO works_in VALUES (54409, '0013', '2003-1-18');
+INSERT INTO employees VALUES (54410, '1983-3-2', 'Ursula', 'Cameron', '2003-4-4');
+INSERT INTO salaries VALUES ('54410', 51274, '2003-4-4');
+INSERT INTO titles VALUES ( '54410', 'Tech Lev 1', '2003-4-4');
+INSERT INTO works_in VALUES (54410, '0006', '2003-4-4');
+INSERT INTO works_in VALUES (54336, '0003', '2003-4-19');
+INSERT INTO titles VALUES ( '54353', 'Programmer Lev 1', '2003-8-14');
+INSERT INTO titles VALUES ( '54344', 'Programmer Lev 1', '2003-8-23');
+INSERT INTO titles VALUES ( '54344', 'Programmer Lev 2', '2003-9-22');
+INSERT INTO titles VALUES ( '54338', 'Programmer Lev 1', '2003-10-4');
+INSERT INTO works_in VALUES (54390, '0009', '2003-11-5');
+INSERT INTO works_in VALUES (54378, '0007', '2004-2-13');
+INSERT INTO titles VALUES ( '54378', 'Tech Lev 2', '2004-2-18');
+INSERT INTO titles VALUES ( '54338', 'Programmer Lev 2', '2004-5-8');
+INSERT INTO works_in VALUES (54356, '0005', '2004-7-27');
+INSERT INTO works_in VALUES (54357, '0007', '2004-10-16');
+INSERT INTO employees VALUES (54411, '1983-6-22', 'Charlotte', 'Tileman', '2004-11-3');
+INSERT INTO salaries VALUES ('54411', 17513, '2004-11-3');
+INSERT INTO titles VALUES ( '54411', 'Tech Lev 1', '2004-11-3');
+INSERT INTO works_in VALUES (54411, '0008', '2004-11-3');
+INSERT INTO employees VALUES (54412, '1983-6-23', 'Konstantin', 'Belleci', '2004-11-4');
+INSERT INTO salaries VALUES ('54412', 30860, '2004-11-4');
+INSERT INTO titles VALUES ( '54412', 'Tech Lev 1', '2004-11-4');
+INSERT INTO works_in VALUES (54412, '0013', '2004-11-4');
+INSERT INTO titles VALUES ( '54368', 'Programmer Lev 2', '2004-11-21');
+INSERT INTO employees VALUES (54413, '1984-1-27', 'Samuel', 'Waxman', '2005-3-14');
+INSERT INTO salaries VALUES ('54413', 59842, '2005-3-14');
+INSERT INTO titles VALUES ( '54413', 'Tech Lev 1', '2005-3-14');
+INSERT INTO works_in VALUES (54413, '0006', '2005-3-14');
+INSERT INTO titles VALUES ( '54329', 'Junior Architecht', '2005-3-25');
+INSERT INTO works_in VALUES (54393, '0002', '2005-4-19');
+INSERT INTO titles VALUES ( '54390', 'Tech Lev 2', '2005-7-17');
+INSERT INTO titles VALUES ( '54322', 'Strategist', '2005-10-4');
+INSERT INTO titles VALUES ( '54324', 'Programmer Lev 1', '2005-11-5');
+INSERT INTO works_in VALUES (54332, '0002', '2006-1-28');
+INSERT INTO works_in VALUES (54335, '0002', '2006-2-28');
+INSERT INTO works_in VALUES (54332, '0004', '2006-3-7');
+INSERT INTO titles VALUES ( '54342', 'Programmer Lev 1', '2006-8-14');
+INSERT INTO titles VALUES ( '54394', 'Programmer Lev 1', '2006-8-18');
+INSERT INTO titles VALUES ( '54374', 'Tech Lev 2', '2006-10-12');
+INSERT INTO works_in VALUES (54386, '0003', '2006-11-26');
+INSERT INTO works_in VALUES (54352, '0012', '2006-12-20');
+INSERT INTO works_in VALUES (54375, '0012', '2007-1-7');
+INSERT INTO works_in VALUES (54381, '0000', '2007-2-18');
+INSERT INTO titles VALUES ( '54404', 'Tech Lev 2', '2007-4-8');
+INSERT INTO works_in VALUES (54347, '0013', '2007-4-12');
+INSERT INTO employees VALUES (54414, '1987-3-21', 'Kitty', 'Scherbatsky', '2007-5-18');
+INSERT INTO salaries VALUES ('54414', 32756, '2007-5-18');
+INSERT INTO titles VALUES ( '54414', 'Tech Lev 1', '2007-5-18');
+INSERT INTO works_in VALUES (54414, '0013', '2007-5-18');
+INSERT INTO titles VALUES ( '54327', 'Junior Architecht', '2007-7-20');
+INSERT INTO titles VALUES ( '54357', 'Programmer Lev 1', '2007-12-22');
+INSERT INTO works_in VALUES (54368, '0009', '2008-1-11');
+INSERT INTO works_in VALUES (54361, '0012', '2008-9-10');
+INSERT INTO works_in VALUES (54327, '0008', '2008-9-14');
+INSERT INTO employees VALUES (54415, '1988-10-5', 'Kitty', 'Mason', '2009-1-15');
+INSERT INTO salaries VALUES ('54415', 57457, '2009-1-15');
+INSERT INTO titles VALUES ( '54415', 'Tech Lev 1', '2009-1-15');
+INSERT INTO works_in VALUES (54415, '0004', '2009-1-15');
+INSERT INTO titles VALUES ( '54343', 'Tech Lev 2', '2009-1-24');
+INSERT INTO works_in VALUES (54339, '0007', '2009-2-25');
+INSERT INTO employees VALUES (54416, '1988-11-5', 'Anna', 'Vanderhund', '2009-3-2');
+INSERT INTO salaries VALUES ('54416', 28071, '2009-3-2');
+INSERT INTO titles VALUES ( '54416', 'Tech Lev 1', '2009-3-2');
+INSERT INTO works_in VALUES (54416, '0000', '2009-3-2');
+INSERT INTO employees VALUES (54417, '1989-2-13', 'Ivan', 'Raskolnikov', '2009-3-21');
+INSERT INTO salaries VALUES ('54417', 54030, '2009-3-21');
+INSERT INTO titles VALUES ( '54417', 'Tech Lev 1', '2009-3-21');
+INSERT INTO works_in VALUES (54417, '0012', '2009-3-21');
+INSERT INTO titles VALUES ( '54406', 'Tech Lev 2', '2009-3-27');
+INSERT INTO employees VALUES (54418, '1989-3-12', 'Xander', 'Vanderhund', '2009-4-17');
+INSERT INTO salaries VALUES ('54418', 39029, '2009-4-17');
+INSERT INTO titles VALUES ( '54418', 'Tech Lev 1', '2009-4-17');
+INSERT INTO works_in VALUES (54418, '0002', '2009-4-17');
+INSERT INTO employees VALUES (54419, '1989-4-16', 'Paul', 'Raskolnikov', '2009-8-12');
+INSERT INTO salaries VALUES ('54419', 35611, '2009-8-12');
+INSERT INTO titles VALUES ( '54419', 'Tech Lev 1', '2009-8-12');
+INSERT INTO works_in VALUES (54419, '0005', '2009-8-12');
+INSERT INTO employees VALUES (54420, '1989-7-19', 'Rachel', 'Oblansky', '2009-9-5');
+INSERT INTO salaries VALUES ('54420', 58770, '2009-9-5');
+INSERT INTO titles VALUES ( '54420', 'Tech Lev 1', '2009-9-5');
+INSERT INTO works_in VALUES (54420, '0005', '2009-9-5');
+INSERT INTO works_in VALUES (54420, '0009', '2009-11-4');
+INSERT INTO employees VALUES (54421, '1989-10-16', 'Tanya', 'Anderson', '2009-11-5');
+INSERT INTO salaries VALUES ('54421', 26626, '2009-11-5');
+INSERT INTO titles VALUES ( '54421', 'Tech Lev 1', '2009-11-5');
+INSERT INTO works_in VALUES (54421, '0011', '2009-11-5');
+INSERT INTO works_in VALUES (54340, '0001', '2009-12-4');
+INSERT INTO works_in VALUES (54414, '0009', '2010-1-5');
+INSERT INTO works_in VALUES (54381, '0008', '2010-1-6');
+INSERT INTO employees VALUES (54422, '1990-1-6', 'Quentin', 'Pierce', '2010-1-7');
+INSERT INTO salaries VALUES ('54422', 58641, '2010-1-7');
+INSERT INTO titles VALUES ( '54422', 'Tech Lev 1', '2010-1-7');
+INSERT INTO works_in VALUES (54422, '0011', '2010-1-7');
+INSERT INTO titles VALUES ( '54403', 'Tech Lev 2', '2010-1-9');
+INSERT INTO titles VALUES ( '54335', 'Programmer Lev 2', '2010-2-4');
+INSERT INTO titles VALUES ( '54405', 'Tech Lev 2', '2010-3-2');
+INSERT INTO works_in VALUES (54385, '0012', '2010-5-15');
+INSERT INTO works_in VALUES (54351, '0003', '2010-6-8');
+INSERT INTO works_in VALUES (54349, '0001', '2010-6-11');
+INSERT INTO works_in VALUES (54385, '0006', '2010-6-25');
+INSERT INTO works_in VALUES (54395, '0006', '2010-7-18');
+INSERT INTO employees VALUES (54423, '1990-4-17', 'Ivan', 'Anderson', '2010-7-28');
+INSERT INTO salaries VALUES ('54423', 49279, '2010-7-28');
+INSERT INTO titles VALUES ( '54423', 'Tech Lev 1', '2010-7-28');
+INSERT INTO works_in VALUES (54423, '0003', '2010-7-28');
+INSERT INTO works_in VALUES (54327, '0007', '2010-9-7');
+INSERT INTO employees VALUES (54424, '1990-5-23', 'Lindsay', 'Oblansky', '2010-11-2');
+INSERT INTO salaries VALUES ('54424', 55636, '2010-11-2');
+INSERT INTO titles VALUES ( '54424', 'Tech Lev 1', '2010-11-2');
+INSERT INTO works_in VALUES (54424, '0007', '2010-11-2');
+INSERT INTO titles VALUES ( '54366', 'Tech Lev 2', '2011-1-15');
+INSERT INTO employees VALUES (54425, '1990-10-20', 'Tanya', 'Pierce', '2011-3-13');
+INSERT INTO salaries VALUES ('54425', 12862, '2011-3-13');
+INSERT INTO titles VALUES ( '54425', 'Tech Lev 1', '2011-3-13');
+INSERT INTO works_in VALUES (54425, '0006', '2011-3-13');
+INSERT INTO titles VALUES ( '54418', 'Tech Lev 2', '2011-5-23');
+INSERT INTO works_in VALUES (54348, '0008', '2011-6-15');
+INSERT INTO employees VALUES (54426, '1991-1-17', 'Ivan', 'Yewbeam', '2011-7-8');
+INSERT INTO salaries VALUES ('54426', 46807, '2011-7-8');
+INSERT INTO titles VALUES ( '54426', 'Tech Lev 1', '2011-7-8');
+INSERT INTO works_in VALUES (54426, '0010', '2011-7-8');
+INSERT INTO works_in VALUES (54372, '0012', '2011-10-17');
+INSERT INTO titles VALUES ( '54352', 'Programmer Lev 1', '2011-12-5');
+INSERT INTO works_in VALUES (54365, '0006', '2011-12-17');
+INSERT INTO works_in VALUES (54384, '0004', '2012-1-2');
+INSERT INTO titles VALUES ( '54377', 'Programmer Lev 2', '2012-2-9');
+INSERT INTO titles VALUES ( '54344', 'Junior Architecht', '2012-3-12');
+INSERT INTO titles VALUES ( '54332', 'Programmer Lev 1', '2012-4-14');
+INSERT INTO titles VALUES ( '54330', 'Strategist', '2012-5-17');
+INSERT INTO works_in VALUES (54406, '0003', '2012-11-27');
+INSERT INTO titles VALUES ( '54389', 'Tech Lev 2', '2012-12-26');
+INSERT INTO works_in VALUES (54413, '0002', '2013-1-28');
+INSERT INTO works_in VALUES (54389, '0005', '2013-2-27');
+INSERT INTO works_in VALUES (54372, '0008', '2013-5-12');
+INSERT INTO employees VALUES (54427, '1992-12-28', 'Konstantin', 'Urx', '2013-5-16');
+INSERT INTO salaries VALUES ('54427', 56974, '2013-5-16');
+INSERT INTO titles VALUES ( '54427', 'Tech Lev 1', '2013-5-16');
+INSERT INTO works_in VALUES (54427, '0008', '2013-5-16');
+INSERT INTO employees VALUES (54428, '1993-4-8', 'Dagwood', 'Feynman', '2013-6-26');
+INSERT INTO salaries VALUES ('54428', 36484, '2013-6-26');
+INSERT INTO titles VALUES ( '54428', 'Tech Lev 1', '2013-6-26');
+INSERT INTO works_in VALUES (54428, '0001', '2013-6-26');
+INSERT INTO employees VALUES (54429, '1993-5-4', 'Tanya', 'Tileman', '2013-7-27');
+INSERT INTO salaries VALUES ('54429', 42624, '2013-7-27');
+INSERT INTO titles VALUES ( '54429', 'Tech Lev 1', '2013-7-27');
+INSERT INTO works_in VALUES (54429, '0010', '2013-7-27');
+INSERT INTO works_in VALUES (54384, '0000', '2013-8-4');
+INSERT INTO employees VALUES (54430, '1993-5-27', 'Lindsay', 'Yewbeam', '2013-8-13');
+INSERT INTO salaries VALUES ('54430', 39858, '2013-8-13');
+INSERT INTO titles VALUES ( '54430', 'Tech Lev 1', '2013-8-13');
+INSERT INTO works_in VALUES (54430, '0007', '2013-8-13');
+INSERT INTO works_in VALUES (54346, '0006', '2013-10-26');
+INSERT INTO works_in VALUES (54394, '0011', '2013-11-3');
+INSERT INTO titles VALUES ( '54399', 'Programmer Lev 1', '2013-12-3');
+INSERT INTO works_in VALUES (54367, '0010', '2014-3-3');
+UPDATE dept_manager SET to_date = '2014-3-9' WHERE emp_no = 54403 AND from_date = '2002-2-23';
+INSERT INTO works_in VALUES (54403, '0006', '2014-3-9');
+INSERT INTO titles VALUES ( '54380', 'Tech Lev 2', '2014-3-21');
+INSERT INTO titles VALUES ( '54400', 'Tech Lev 2', '2014-4-8');
+INSERT INTO employees VALUES (54431, '1994-1-15', 'Olivia', 'Scherbatsky', '2014-4-20');
+INSERT INTO salaries VALUES ('54431', 34671, '2014-4-20');
+INSERT INTO titles VALUES ( '54431', 'Tech Lev 1', '2014-4-20');
+INSERT INTO works_in VALUES (54431, '0000', '2014-4-20');
+INSERT INTO employees VALUES (54432, '1994-2-8', 'Bob', 'Yewbeam', '2014-5-28');
+INSERT INTO salaries VALUES ('54432', 18813, '2014-5-28');
+INSERT INTO titles VALUES ( '54432', 'Tech Lev 1', '2014-5-28');
+INSERT INTO works_in VALUES (54432, '0011', '2014-5-28');
+INSERT INTO employees VALUES (54433, '1994-4-10', 'Garry', 'Waxman', '2014-7-14');
+INSERT INTO salaries VALUES ('54433', 16796, '2014-7-14');
+INSERT INTO titles VALUES ( '54433', 'Tech Lev 1', '2014-7-14');
+INSERT INTO works_in VALUES (54433, '0012', '2014-7-14');
+INSERT INTO employees VALUES (54434, '1994-4-24', 'Vanessa', 'Anderson', '2014-7-25');
+INSERT INTO salaries VALUES ('54434', 53823, '2014-7-25');
+INSERT INTO titles VALUES ( '54434', 'Tech Lev 1', '2014-7-25');
+INSERT INTO works_in VALUES (54434, '0007', '2014-7-25');
+INSERT INTO titles VALUES ( '54432', 'Tech Lev 2', '2014-10-12');
+INSERT INTO titles VALUES ( '54342', 'Tech Lev 2', '2014-10-26');
+INSERT INTO titles VALUES ( '54327', 'Senior Architecht', '2014-11-5');
+INSERT INTO dept_manager VALUES ('0003', 54359, '2014-12-6', null);
+INSERT INTO works_in VALUES (54359, '0003', '2014-12-6');
+INSERT INTO titles VALUES ( '54429', 'Tech Lev 2', '2014-12-19');
+INSERT INTO works_in VALUES (54393, '0011', '2015-5-8');
+INSERT INTO titles VALUES ( '54347', 'Programmer Lev 1', '2015-5-11');
+UPDATE dept_manager SET to_date = '2015-6-2' WHERE emp_no = 54371 AND from_date = '1983-11-10';
+INSERT INTO works_in VALUES (54371, '0000', '2015-6-2');
+INSERT INTO dept_manager VALUES ('0011', 54389, '2015-7-21', null);
+INSERT INTO works_in VALUES (54389, '0011', '2015-7-21');
+INSERT INTO titles VALUES ( '54337', 'Junior Architecht', '2015-9-26');
+UPDATE dept_manager SET to_date = '2015-12-6' WHERE emp_no = 54354 AND from_date = '1978-4-20';
+INSERT INTO works_in VALUES (54354, '0004', '2015-12-6');
+INSERT INTO titles VALUES ( '54352', 'Programmer Lev 2', '2015-12-14');
+INSERT INTO employees VALUES (54435, '1994-12-6', 'William', 'Vanderhund', '2015-12-23');
+INSERT INTO salaries VALUES ('54435', 54749, '2015-12-23');
+INSERT INTO titles VALUES ( '54435', 'Tech Lev 1', '2015-12-23');
+INSERT INTO works_in VALUES (54435, '0007', '2015-12-23');
+INSERT INTO titles VALUES ( '54367', 'Programmer Lev 1', '2016-1-2');
+INSERT INTO employees VALUES (54436, '1994-12-14', 'Samuel', 'Gyser', '2016-1-27');
+INSERT INTO salaries VALUES ('54436', 45807, '2016-1-27');
+INSERT INTO titles VALUES ( '54436', 'Tech Lev 1', '2016-1-27');
+INSERT INTO works_in VALUES (54436, '0008', '2016-1-27');
+INSERT INTO titles VALUES ( '54397', 'Programmer Lev 1', '2016-3-8');
+INSERT INTO works_in VALUES (54396, '0003', '2016-3-20');
+INSERT INTO titles VALUES ( '54413', 'Tech Lev 2', '2016-4-9');
+INSERT INTO works_in VALUES (54331, '0004', '2016-5-15');
+UPDATE dept_manager SET to_date = '2016-5-25' WHERE emp_no = 54383 AND from_date = '2002-10-15';
+INSERT INTO works_in VALUES (54383, '0012', '2016-5-25');
+INSERT INTO works_in VALUES (54361, '0011', '2016-6-26');
+INSERT INTO titles VALUES ( '54355', 'Programmer Lev 1', '2016-6-28');
+INSERT INTO employees VALUES (54437, '1995-5-11', 'Mary', 'Gyser', '2016-10-8');
+INSERT INTO salaries VALUES ('54437', 32822, '2016-10-8');
+INSERT INTO titles VALUES ( '54437', 'Tech Lev 1', '2016-10-8');
+INSERT INTO works_in VALUES (54437, '0002', '2016-10-8');
+INSERT INTO employees VALUES (54438, '1995-6-25', 'Yvonne', 'Tileman', '2016-10-12');
+INSERT INTO salaries VALUES ('54438', 15979, '2016-10-12');
+INSERT INTO titles VALUES ( '54438', 'Tech Lev 1', '2016-10-12');
+INSERT INTO works_in VALUES (54438, '0011', '2016-10-12');
+INSERT INTO titles VALUES ( '54386', 'Programmer Lev 2', '2016-10-13');
+INSERT INTO employees VALUES (54439, '1995-10-9', 'William', 'Raskolnikov', '2016-10-26');
+INSERT INTO salaries VALUES ('54439', 59977, '2016-10-26');
+INSERT INTO titles VALUES ( '54439', 'Tech Lev 1', '2016-10-26');
+INSERT INTO works_in VALUES (54439, '0005', '2016-10-26');
+INSERT INTO titles VALUES ( '54362', 'Tech Lev 2', '2017-1-10');
+INSERT INTO titles VALUES ( '54413', 'Programmer Lev 1', '2017-4-26');
+INSERT INTO works_in VALUES (54382, '0013', '2017-6-4');
+INSERT INTO works_in VALUES (54352, '0000', '2017-6-23');
+INSERT INTO titles VALUES ( '54427', 'Tech Lev 2', '2017-11-6');
+INSERT INTO works_in VALUES (54332, '0010', '2018-3-2');
+INSERT INTO dept_manager VALUES ('0004', 54430, '2018-3-11', null);
+INSERT INTO works_in VALUES (54430, '0004', '2018-3-11');
+INSERT INTO employees VALUES (54440, '1998-3-3', 'Ivan', 'Anderson', '2018-7-26');
+INSERT INTO salaries VALUES ('54440', 46652, '2018-7-26');
+INSERT INTO titles VALUES ( '54440', 'Tech Lev 1', '2018-7-26');
+INSERT INTO works_in VALUES (54440, '0002', '2018-7-26');
+INSERT INTO works_in VALUES (54344, '0002', '2018-7-28');
+INSERT INTO employees VALUES (54441, '1998-4-2', 'Kitty', 'Vanderhund', '2018-9-5');
+INSERT INTO salaries VALUES ('54441', 17947, '2018-9-5');
+INSERT INTO titles VALUES ( '54441', 'Tech Lev 1', '2018-9-5');
+INSERT INTO works_in VALUES (54441, '0003', '2018-9-5');
+INSERT INTO employees VALUES (54442, '1998-4-28', 'Paul', 'Pierce', '2018-9-13');
+INSERT INTO salaries VALUES ('54442', 38722, '2018-9-13');
+INSERT INTO titles VALUES ( '54442', 'Tech Lev 1', '2018-9-13');
+INSERT INTO works_in VALUES (54442, '0001', '2018-9-13');
+INSERT INTO employees VALUES (54443, '1998-8-20', 'Samuel', 'Vanderhund', '2018-10-9');
+INSERT INTO salaries VALUES ('54443', 27296, '2018-10-9');
+INSERT INTO titles VALUES ( '54443', 'Tech Lev 1', '2018-10-9');
+INSERT INTO works_in VALUES (54443, '0010', '2018-10-9');
+INSERT INTO works_in VALUES (54406, '0013', '2018-12-22');
+INSERT INTO titles VALUES ( '54365', 'Programmer Lev 2', '2018-12-24');
+INSERT INTO employees VALUES (54444, '1998-10-9', 'Garry', 'Pierce', '2018-12-27');
+INSERT INTO salaries VALUES ('54444', 14628, '2018-12-27');
+INSERT INTO titles VALUES ( '54444', 'Tech Lev 1', '2018-12-27');
+INSERT INTO dept_manager VALUES ('0009', 54444, '2018-12-27', null);
+INSERT INTO works_in VALUES (54444, '0009', '2018-12-27');
+INSERT INTO employees VALUES (54445, '1999-1-7', 'Jada', 'Hyte', '2019-1-16');
+INSERT INTO salaries VALUES ('54445', 49667, '2019-1-16');
+INSERT INTO titles VALUES ( '54445', 'Tech Lev 1', '2019-1-16');
+INSERT INTO works_in VALUES (54445, '0001', '2019-1-16');
