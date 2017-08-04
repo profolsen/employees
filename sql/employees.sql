@@ -41,7 +41,7 @@ CREATE TABLE dept_manager (
    to_date      TIMESTAMP       ,
    FOREIGN KEY (emp_no)  REFERENCES employees (emp_no)    ON DELETE CASCADE,
    FOREIGN KEY (dept_no) REFERENCES departments (dept_no) ON DELETE CASCADE,
-   PRIMARY KEY (emp_no,from_date,dept_no)  -- see note in works in about primary key.
+   PRIMARY KEY (emp_no,from_date,dept_no)
 ); 
 
 CREATE TABLE works_in (
@@ -51,9 +51,7 @@ CREATE TABLE works_in (
     to_date TIMESTAMP,
     FOREIGN KEY (emp_no)  REFERENCES employees   (emp_no)  ON DELETE CASCADE,
     FOREIGN KEY (dept_no) REFERENCES departments (dept_no) ON DELETE CASCADE,
-    PRIMARY KEY (emp_no,from_date,dept_no)  -- it may make more sense from some perspective to have (emp_no, dept_no) be
-                                    -- the primary key here, but that precludes some pretty sensible occurrences.
-                                    -- for instance, an employee going from dept a to dept b back to dept a.
+    PRIMARY KEY (emp_no,from_date,dept_no)
 );
 
 CREATE TABLE titles (

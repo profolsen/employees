@@ -26,10 +26,10 @@ public class Employee {
 
     private static String[] titles = new String[] {
             "Tech Lev 1",
-            "Tech Lev 2",
+            //"Tech Lev 2",
             "Programmer Lev 1",
-            "Programmer Lev 2",
-            "Junior Architecht",
+            //"Programmer Lev 2",
+            //"Junior Architecht",
             "Senior Architecht",
             "Strategist"
     };
@@ -56,8 +56,8 @@ public class Employee {
 
     public static void main(String[] args) {
         double probabilityOfBirthOrHire = (double)NumEmployees*3/(double)(365*70);
-        double probabilityOfTitleChange = (double)NumEmployees*3/(double)(365*70);
-        double probabilityOfMove = (double)NumEmployees*3/(double)(365*70);
+        double probabilityOfTitleChange = (double)NumEmployees*2/(double)(365*70);
+        double probabilityOfMove = (double)NumEmployees*2/(double)(365*70);
 
 
         LinkedList<Employee> unhired = new LinkedList<Employee>();
